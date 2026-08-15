@@ -1,0 +1,188 @@
+# ~/.kimi-code/config.toml — géré en git dans ~/src/kimi-config, déployé via install.sh (symlink).
+# Kimi Code peut réécrire certaines sections (providers/models managés, tables OAuth
+# injectées par /login) : ces diffs apparaîtront dans git, à revoir comme les autres.
+
+default_model = "kimi-code/k3"
+# Équivalent du "bypassPermissions" de Claude Code : auto-approve des outils,
+# l'agent peut encore poser des questions ("auto" = ne demande plus rien du tout).
+default_permission_mode = "yolo"
+
+[providers."managed:kimi-code"]
+type = "kimi"
+api_key = ""
+base_url = "https://api.kimi.com/coding/v1"
+
+[providers."managed:kimi-code".oauth]
+storage = "file"
+key = "oauth/kimi-code"
+
+[models."kimi-code/kimi-for-coding"]
+provider = "managed:kimi-code"
+model = "kimi-for-coding"
+max_context_size = 262144
+capabilities = [ "thinking", "always_thinking", "image_in", "video_in", "tool_use" ]
+display_name = "K2.7 Coding"
+
+[models."kimi-code/kimi-for-coding-highspeed"]
+provider = "managed:kimi-code"
+model = "kimi-for-coding-highspeed"
+max_context_size = 262144
+capabilities = [ "thinking", "always_thinking", "image_in", "video_in", "tool_use" ]
+display_name = "K2.7 Coding Highspeed"
+
+[models."kimi-code/k3"]
+provider = "managed:kimi-code"
+model = "k3"
+max_context_size = 1048576
+capabilities = [ "thinking", "always_thinking", "image_in", "video_in", "tool_use" ]
+display_name = "K3"
+support_efforts = [ "low", "high", "max" ]
+default_effort = "high"
+
+[models."kimi-code/k3-256k"]
+provider = "managed:kimi-code"
+model = "k3-256k"
+max_context_size = 262144
+capabilities = [ "thinking", "always_thinking", "image_in", "tool_use" ]
+display_name = "K3-256k"
+support_efforts = [ "low", "high", "max" ]
+default_effort = "high"
+
+[thinking]
+enabled = true
+effort = "high"
+
+[services.moonshot_search]
+base_url = "https://api.kimi.com/coding/v1/search"
+api_key = ""
+
+[services.moonshot_search.oauth]
+storage = "file"
+key = "oauth/kimi-code"
+
+[services.moonshot_fetch]
+base_url = "https://api.kimi.com/coding/v1/fetch"
+api_key = ""
+
+[services.moonshot_fetch.oauth]
+storage = "file"
+key = "oauth/kimi-code"
+
+# ---------------------------------------------------------------------------
+# Permissions — deny list portée de claude-config/settings.json
+# (première règle qui matche gagne ; deny l'emporte même en mode yolo)
+# ---------------------------------------------------------------------------
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(rm -rf /)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(rm -rf --no-preserve-root /)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(git push --force *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(git push -f *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(sudo rm -rf *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(sudo dd *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(sudo chmod 777 *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(rm -rf ~*)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(rm -rf /*)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(rm -rf .)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(curl * | sh)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(wget * | sh)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(chmod 777 *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(dd *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(shutdown *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(reboot *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(git reset --hard *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(git clean -fd *)"
+
+[[permission.rules]]
+decision = "deny"
+pattern = "Bash(prisma reset *)"
+
+# ---------------------------------------------------------------------------
+# Hooks — [[hooks]] n'accepte QUE event/matcher/command/timeout
+# (un champ en plus fait échouer le chargement de toute la config)
+# ---------------------------------------------------------------------------
+
+# Formatage automatique après écriture/édition (ruff, rustfmt, prettier)
+[[hooks]]
+event = "PostToolUse"
+matcher = "Write|Edit"
+command = "$HOME/src/kimi-config/scripts/format-on-save.sh"
+timeout = 20
+
+# Bloque l'écriture sur les fichiers .env sensibles
+[[hooks]]
+event = "PreToolUse"
+matcher = "Write|Edit"
+command = "$HOME/src/kimi-config/scripts/protect-env.sh"
+timeout = 10
+
+# Son "travail terminé" en fin de tour
+[[hooks]]
+event = "Stop"
+command = "$HOME/src/kimi-config/scripts/notify-sound.sh"
+timeout = 10
+
+# Backstop auto-amélioration, 1×/session (cf. AGENTS.md § Auto-amélioration)
+[[hooks]]
+event = "Stop"
+command = "$HOME/src/kimi-config/scripts/reflect-nudge.sh"
+timeout = 10
+
+# Son quand une tâche de fond se termine
+[[hooks]]
+event = "Notification"
+matcher = 'task\.completed'
+command = "$HOME/src/kimi-config/scripts/notify-sound.sh"
+timeout = 10

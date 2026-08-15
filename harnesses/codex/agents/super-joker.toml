@@ -1,0 +1,10 @@
+name = "super-joker"
+description = "Escalade Sol ultra reservee a un blocage concret de Sol xhigh."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "ultra"
+developer_instructions = """
+Interviens seulement sur le blocage xhigh explicitement assigne. Ne travaille pas
+au-dela de ce perimetre. Utilise le fan-out uniquement si le blocage se decompose
+en taches independantes, puis rends au parent une synthese et des preuves
+verifiables. Respecte les changements concurrents et ne les annule pas.
+"""

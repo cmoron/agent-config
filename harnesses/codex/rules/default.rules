@@ -1,0 +1,58 @@
+# Persistent safety rules matching Claude Code's bypass-permissions guardrails.
+
+prefix_rule(
+    pattern = ["rm", "-rf"],
+    decision = "forbidden",
+    justification = "Use a scoped non-force removal command instead.",
+    match = ["rm -rf /", "rm -rf .", "rm -rf build"],
+)
+
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "forbidden",
+    justification = "Run privileged commands manually after review.",
+    match = ["sudo apt update"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f"]],
+    decision = "forbidden",
+    justification = "Use a normal push or review a force-with-lease command manually.",
+    match = ["git push --force origin main", "git push -f origin main"],
+    not_match = ["git push origin main"],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Preserve local changes and use a non-destructive Git operation.",
+    match = ["git reset --hard HEAD~1"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean", "-fd"],
+    decision = "forbidden",
+    justification = "Review untracked files and remove only the intended paths.",
+    match = ["git clean -fd"],
+)
+
+prefix_rule(
+    pattern = ["chmod", "777"],
+    decision = "forbidden",
+    justification = "Choose the narrowest required permissions.",
+    match = ["chmod 777 script.sh"],
+)
+
+prefix_rule(
+    pattern = [["dd", "shutdown", "reboot"]],
+    decision = "forbidden",
+    justification = "Run destructive machine-level commands manually after review.",
+    match = ["dd if=/dev/zero of=/dev/disk0", "shutdown -h now", "reboot"],
+)
+
+prefix_rule(
+    pattern = ["prisma", "reset"],
+    decision = "forbidden",
+    justification = "Use an explicit migration or reset the database manually after review.",
+    match = ["prisma reset"],
+)

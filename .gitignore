@@ -1,0 +1,4 @@
+.worktrees/
+backups/
+*.bak
+*.tmp
