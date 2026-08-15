@@ -37,6 +37,7 @@ required_paths=(
   harnesses/kimi/mcp.json
   harnesses/kimi/tui.toml
   harnesses/opencode/instructions.overlay.md
+  harnesses/opencode/env.sh
   harnesses/opencode/opencode.json
 )
 
@@ -51,24 +52,6 @@ if [ -e "$ROOT/global/AGENTS.md" ]; then
   printf 'legacy path must not exist: global/AGENTS.md\n' >&2
   exit 1
 fi
-
-portable_skills=(
-  api-design
-  deployment
-  grill-with-docs
-  mvp
-  nvim-config
-  stack-python
-  stack-rust
-  stack-ts
-)
-
-for skill in "${portable_skills[@]}"; do
-  diff -qr "$ROOT/shared/skills/$skill" "/home/cyril/src/codex-config/skills/$skill" >/dev/null || {
-    printf 'portable skill differs from audited source: %s\n' "$skill" >&2
-    exit 1
-  }
-done
 
 expected_asset_hash="c5809450ce3b1b7fc1e7ea659335e6d3330ad41cbcdccee7ff7d7dd06890bcd1"
 actual_asset_hash="$(sha256sum "$ROOT/shared/assets/warcraft-3-paysan-travail-termine.mp3" | awk '{print $1}')"

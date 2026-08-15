@@ -23,11 +23,15 @@ model = "runtime-model"
 
 [hooks.state."keep-me"]
 trusted_hash = "runtime-hash"
+
+[projects."/home/cyril/src/runtime-project"]
+trust_level = "trusted"
 EOF
 
 cat >"$HOME/.kimi-code/config.toml" <<'EOF'
 default_model = "runtime/model"
 default_permission_mode = "ask"
+merge_all_available_skills = true
 
 [providers.runtime]
 type = "runtime"
@@ -71,21 +75,31 @@ assert_link_to \
   "$HOME/.claude/commands/commit.md" \
   "$TEST_ROOT/harnesses/claude/commands/commit.md"
 assert_link_to "$HOME/.config/ccstatusline" "$TEST_ROOT/harnesses/claude/config/ccstatusline"
-! rg -n 'src/(claude-config|codex-config|kimi-config)' \
-  "$HOME/.claude/settings.json" "$HOME/.claude/scripts/notify-sound.sh"
+if rg -n 'src/(claude-config|codex-config|kimi-config)' \
+  "$HOME/.claude/settings.json" "$HOME/.claude/scripts/notify-sound.sh"; then
+  exit 1
+fi
 
 "$TEST_ROOT/install.sh" --only codex >/dev/null
 grep -q '^\[hooks.state."keep-me"\]$' "$HOME/.codex/config.toml"
 grep -q '^trusted_hash = "runtime-hash"$' "$HOME/.codex/config.toml"
+grep -q '^\[projects."/home/cyril/src/runtime-project"\]$' "$HOME/.codex/config.toml"
+grep -q '^trust_level = "trusted"$' "$HOME/.codex/config.toml"
 grep -q '^\[mcp_servers.playwright\]$' "$HOME/.codex/config.toml"
+if rg -n '^trust_level\s*=' "$TEST_ROOT/harnesses/codex/config.toml"; then
+  printf '%s\n' 'Codex source must not version machine-local project trust' >&2
+  exit 1
+fi
 [ ! -L "$HOME/.codex/config.toml" ]
 assert_file "$HOME/.codex/hooks.json"
 assert_file "$HOME/.codex/rules/default.rules"
 assert_link_to "$HOME/.codex/scripts" "$TEST_ROOT/harnesses/codex/scripts"
 assert_link_to "$HOME/.codex/assets" "$TEST_ROOT/shared/assets"
 assert_link_to "$HOME/.codex/agents" "$TEST_ROOT/harnesses/codex/agents"
-! rg -n 'src/(claude-config|codex-config|kimi-config)' \
-  "$HOME/.codex/config.toml" "$HOME/.codex/hooks.json" "$HOME/.codex/scripts"
+if rg -n 'src/(claude-config|codex-config|kimi-config)' \
+  "$HOME/.codex/config.toml" "$HOME/.codex/hooks.json" "$HOME/.codex/scripts"; then
+  exit 1
+fi
 
 after_windows_hash="$(sha256sum "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml" | awk '{print $1}')"
 [ "$windows_config_hash" = "$after_windows_hash" ] || {
@@ -102,9 +116,12 @@ assert_dir "$AGENT_CONFIG_WINDOWS_CODEX_DIR/agents"
 "$TEST_ROOT/install.sh" --only kimi >/dev/null
 grep -q '^default_model = "runtime/model"$' "$HOME/.kimi-code/config.toml"
 grep -q '^default_permission_mode = "yolo"$' "$HOME/.kimi-code/config.toml"
+grep -q '^merge_all_available_skills = false$' "$HOME/.kimi-code/config.toml"
 grep -q '^\[providers.runtime\]$' "$HOME/.kimi-code/config.toml"
 grep -q '^\[runtime.extra\]$' "$HOME/.kimi-code/config.toml"
 grep -q '^pattern = "Bash(rm -rf /)"$' "$HOME/.kimi-code/config.toml"
+# Assert the literal portable $HOME reference.
+# shellcheck disable=SC2016
 grep -q 'command = "$HOME/.kimi-code/scripts/format-on-save.sh"' "$HOME/.kimi-code/config.toml"
 if grep -q 'command = "/old/hook.sh"' "$HOME/.kimi-code/config.toml"; then
   printf '%s\n' 'old Kimi hook survived managed-section replacement' >&2
@@ -117,8 +134,10 @@ assert_file "$HOME/.kimi-code/tui.toml"
 assert_file "$HOME/.kimi-code/mcp.json"
 assert_link_to "$HOME/.kimi-code/scripts" "$TEST_ROOT/harnesses/kimi/scripts"
 assert_link_to "$HOME/.kimi-code/assets" "$TEST_ROOT/shared/assets"
-! rg -n 'src/(claude-config|codex-config|kimi-config)' \
-  "$HOME/.kimi-code/config.toml" "$HOME/.kimi-code/scripts/notify-sound.sh"
+if rg -n 'src/(claude-config|codex-config|kimi-config)' \
+  "$HOME/.kimi-code/config.toml" "$HOME/.kimi-code/scripts/notify-sound.sh"; then
+  exit 1
+fi
 
 "$TEST_ROOT/install.sh" --only opencode >/dev/null
 jq -S . "$TEST_ROOT/harnesses/opencode/opencode.json" >"$TEST_TMP/source-opencode.json"

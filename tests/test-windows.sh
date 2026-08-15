@@ -53,4 +53,10 @@ snapshot_after="$(
   exit 1
 }
 
+# DrvFS exposes Windows files with synthetic POSIX modes (commonly 777). Those
+# modes must not make an otherwise identical Windows deployment drift forever.
+find "$AGENT_CONFIG_WINDOWS_CODEX_DIR" -type f -exec chmod 777 {} +
+find "$AGENT_CONFIG_WINDOWS_CODEX_DIR" -type d -exec chmod 777 {} +
+"$TEST_ROOT/install.sh" --only codex --check >/dev/null
+
 printf 'windows tests: PASS\n'

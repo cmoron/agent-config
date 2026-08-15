@@ -27,7 +27,7 @@ dans le harness qui les possede jusqu'a une verification dediee.
 
 | Artefact | Source actuelle | Cible actuelle | Decision cible |
 | --- | --- | --- | --- |
-| 8 skills portables | Claude + Codex, arbres identiques | homes Claude/Codex | source unique `shared/skills`; hub `~/.agents/skills`; miroir Claude |
+| 8 skills portables | Claude + Codex, arbres identiques | homes Claude/Codex | source unique `shared/skills`; hub `~/.agents/skills`; miroirs Claude et OpenCode |
 | son de notification | trois copies byte-identiques | chemins sous les anciens depots ou `~/.codex/assets` | source unique `shared/assets`; copie/lien dans l'assets dir natif de chaque harness |
 | instructions communes | trois fichiers divergents | fichiers globaux natifs | `instructions/common.md` + overlay rendu dans chaque home natif |
 
@@ -75,7 +75,7 @@ chemin de depot ne doit rester dans une sortie deployee.
 | Artefact actuel | Cible runtime | Type actuel | Decision cible |
 | --- | --- | --- | --- |
 | instructions | `~/.kimi-code/AGENTS.md` | symlink | rendu compose avec bandeau genere |
-| `config.toml` | `~/.kimi-code/config.toml` | symlink remplace par l'application | `merge`; preserver les sections runtime inconnues |
+| `config.toml` | `~/.kimi-code/config.toml` | symlink remplace par l'application | `merge`; preserver les sections runtime inconnues; isoler le groupe de skills Kimi avec `merge_all_available_skills = false` |
 | `tui.toml` | `~/.kimi-code/tui.toml` | symlink | copie apres sauvegarde |
 | `mcp.json` | `~/.kimi-code/mcp.json` | symlink | copie apres sauvegarde; Linear + Context7 |
 | hooks shell | commandes vers `~/src/kimi-config/scripts` | chemin source en dur | deployer sous `~/.kimi-code/scripts`; commandes vers la cible deployee |
@@ -89,11 +89,15 @@ chemin de depot ne doit rester dans une sortie deployee.
 | --- | --- | --- | --- |
 | `opencode.json` | `~/.config/opencode/opencode.json` | fichier mode `0600`, non gere | importer sans secret; copie mode `0600` apres sauvegarde |
 | instructions | absentes | aucune | rendu compose vers `~/.config/opencode/AGENTS.md` |
-| skills specifiques | absents | hub Claude/agents lu nativement | racine declarative `harnesses/opencode/skills` |
+| skills partages | hub Claude/agents lu nativement | fuite des skills Claude-only observee | desactiver la compatibilite Claude et miroiter les liens dans `~/.config/opencode/skills` |
+| environnement | `~/.profile.local` hors gestion | aucune isolation de discovery | fusionner un bloc qui exporte `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`; preserver et sauvegarder le reste hors Git |
+| skills specifiques | absents | aucun | racine declarative `harnesses/opencode/skills` dans le meme repertoire natif |
 | provider Ollama | dans `opencode.json` | app/runtime | conserver; smoke modele differe tant que le provider ne repond pas |
 
 Le plan n'utilise pas la cle `instructions[]`; le support de `~/` dans cette cle
-n'est donc pas un prerequis.
+n'est donc pas un prerequis. OpenCode 1.3.13 masque aussi le hub lorsque la
+compatibilite Claude est desactivee; le miroir natif est donc teste avec le
+binaire reel, pas deduit de la documentation.
 
 ## Hors perimetre de gestion
 

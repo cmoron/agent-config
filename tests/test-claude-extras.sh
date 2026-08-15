@@ -9,6 +9,8 @@ new_test_home
 trap cleanup_test_home EXIT
 
 mkdir -p "$TEST_TMP/bin"
+# The generated fake CLI expands these variables.
+# shellcheck disable=SC2016
 printf '%s\n' \
   '#!/usr/bin/env bash' \
   'printf "%s\n" "$*" >>"$AGENT_CONFIG_CLAUDE_LOG"' \

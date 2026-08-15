@@ -12,10 +12,11 @@ legitimes ni les garanties de deploiement WSL/Windows de Codex.
 La machinerie de `codex-config` sert de base technique et sera importee avec sa
 provenance, puis generalisee. Les skills portables vivent dans `shared/skills`
 et sont deployes dans le hub standard `~/.agents/skills`, avec un miroir par
-skill pour Claude. Les instructions sont composees depuis un socle neutre et un
-overlay par harness, puis materialisees dans le fichier global natif de chaque
-outil. Les configurations mutables, hooks, plugins et MCP restent propres a
-leur harness.
+skill pour Claude. OpenCode utilise aussi un miroir natif, car sa compatibilite
+Claude doit etre desactivee pour ne pas charger les skills Claude-only. Les
+instructions sont composees depuis un socle neutre et un overlay par harness,
+puis materialisees dans le fichier global natif de chaque outil. Les
+configurations mutables, hooks, plugins et MCP restent propres a leur harness.
 
 **Tech stack:** Bash strict (`set -euo pipefail`), Git, symlinks Linux/WSL,
 copies Windows, `jq`/`yq` pour les controles structures lorsqu'ils sont
@@ -68,7 +69,9 @@ Constats techniques qui fondent le plan :
   `~/.codex/skills`, mais ne charge ni `~/.agents/AGENTS.md` ni les imports
   `@...` places dans son `AGENTS.md`.
 - Kimi et OpenCode decouvrent nativement le hub de skills. Claude necessite un
-  lien dans `~/.claude/skills` pour chaque skill partage.
+  lien dans `~/.claude/skills` pour chaque skill partage. En coexistence,
+  OpenCode decouvre aussi les skills Claude-only; sa compatibilite Claude est
+  donc desactivee et les skills partages sont miroires dans sa racine native.
 - L'intersection stricte Claude/Codex contient 12 skills : 8 identiques et 4
   divergents. Les huit identiques sont `api-design`, `deployment`,
   `grill-with-docs`, `mvp`, `nvim-config`, `stack-python`, `stack-rust` et
@@ -175,14 +178,16 @@ hooks restent propres aux harnesses.
 | Surface | Claude | Codex | Kimi | OpenCode |
 | --- | --- | --- | --- | --- |
 | Instructions rendues | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` | `~/.kimi-code/AGENTS.md` | `~/.config/opencode/AGENTS.md` |
-| Skills partages | liens dans `~/.claude/skills` | `~/.agents/skills` natif | `~/.agents/skills` natif | `~/.agents/skills` natif |
+| Skills partages | liens dans `~/.claude/skills` | `~/.agents/skills` natif | `~/.agents/skills` natif | liens dans `~/.config/opencode/skills` |
 | Skills specifiques | `~/.claude/skills` | `~/.codex/skills` | `~/.kimi-code/skills` | `~/.config/opencode/skills` |
 | Config principale | copie/fusion native | copie/fusion native | copie/fusion native | copie/fusion native |
 | Windows Codex | sans objet | copies dans `/mnt/c/Users/cyril/.codex` | sans objet | sans objet |
 
-Le hub `~/.agents` est utilise pour les skills seulement. Les instructions sont
-toujours rendues vers la cible native afin d'avoir un mecanisme identique et
-verifiable pour les quatre harnesses.
+Le hub `~/.agents` est utilise pour les skills Codex et Kimi seulement.
+OpenCode 1.3.13 charge aussi les skills Claude par defaut; son environnement
+desactive cette compatibilite et son miroir natif evite toute fuite. Les
+instructions sont toujours rendues vers la cible native afin d'avoir un
+mecanisme identique et verifiable pour les quatre harnesses.
 
 ---
 
@@ -248,7 +253,7 @@ verifiable pour les quatre harnesses.
 - Produces: une decision `adopt`, `ignore` ou `defer` pour chaque changement
   local; aucun import ulterieur ne peut commencer sans cette classification.
 
-- [ ] **Step 1: Capturer un inventaire reproductible**
+- [x] **Step 1: Capturer un inventaire reproductible**
 
   Executer pour chaque depot source :
 
@@ -261,7 +266,7 @@ verifiable pour les quatre harnesses.
   Reporter les sorties dans `docs/migration-sources.md`, avec la date et le
   chemin source. Ne copier aucune valeur de credential ou de fichier runtime.
 
-- [ ] **Step 2: Classer les modifications locales**
+- [x] **Step 2: Classer les modifications locales**
 
   Examiner les diffs cibles avec `git diff -- <path>`. Pour chaque fichier,
   consigner une des decisions suivantes et sa justification :
@@ -274,7 +279,7 @@ verifiable pour les quatre harnesses.
   `skills/openclaw/SKILL.md` doit rester `defer` tant que la VM Nestor n'a pas
   prouve la valeur effective du heartbeat.
 
-- [ ] **Step 3: Verifier l'absence de secrets dans les sources candidates**
+- [x] **Step 3: Verifier l'absence de secrets dans les sources candidates**
 
   Lister les noms de champs sensibles, sans afficher leurs valeurs :
 
@@ -287,13 +292,13 @@ verifiable pour les quatre harnesses.
   Toute occurrence reelle doit etre exclue ou remplacee par une reference a une
   variable d'environnement avant import.
 
-- [ ] **Step 4: Documenter le statut transitoire du depot**
+- [x] **Step 4: Documenter le statut transitoire du depot**
 
   Ajouter au `README.md` que `agent-config` est en migration, qu'il n'a pas de
   remote et que les anciens installateurs restent autoritatifs jusqu'au gate de
   deploiement reel de Task 8.
 
-- [ ] **Step 5: Verifier et committer**
+- [x] **Step 5: Verifier et committer**
 
   ```bash
   git diff --check
@@ -319,12 +324,12 @@ verifiable pour les quatre harnesses.
 - Produces: l'arborescence cible et des chemins stables pour l'installateur;
   aucun fichier sous les homes utilisateur n'est modifie.
 
-- [ ] **Step 1: Ecrire un test de structure en echec**
+- [x] **Step 1: Ecrire un test de structure en echec**
 
   Ajouter a `tests/test-install.sh` des assertions `test -e` pour chaque racine
   de l'arborescence cible et `test ! -e global/AGENTS.md` apres migration.
 
-- [ ] **Step 2: Verifier l'echec du test**
+- [x] **Step 2: Verifier l'echec du test**
 
   ```bash
   bash tests/test-install.sh
@@ -332,7 +337,7 @@ verifiable pour les quatre harnesses.
 
   Attendu : echec sur la premiere racine cible absente, avant tout deploiement.
 
-- [ ] **Step 3: Importer la configuration Codex**
+- [x] **Step 3: Importer la configuration Codex**
 
   Importer depuis le commit Codex de reference les fichiers classes `adopt`, y
   compris `install.sh`, `update.sh` et les tests existants. Les ajouter comme de
@@ -340,14 +345,14 @@ verifiable pour les quatre harnesses.
   leurs chemins vers `harnesses/codex/` sans changer les destinations runtime.
   Consigner le commit source dans `docs/migration-sources.md`.
 
-- [ ] **Step 4: Creer les racines Claude, Kimi et OpenCode**
+- [x] **Step 4: Creer les racines Claude, Kimi et OpenCode**
 
   Importer seulement les fichiers classes `adopt`. Pour chaque ancien depot,
   utiliser un ajout Git normal et consigner le commit source dans
   `docs/migration-sources.md`; ne pas presenter cet import comme un `git mv`
   inter-repositories.
 
-- [ ] **Step 5: Verifier et committer**
+- [x] **Step 5: Verifier et committer**
 
   ```bash
   bash -n install.sh update.sh tests/*.sh harnesses/codex/scripts/*.sh
@@ -373,7 +378,7 @@ verifiable pour les quatre harnesses.
 - Produces: `deploy_shared_skills`, qui reconcilie les liens Linux/WSL et les
   copies Windows; erreur avant mutation sur tout doublon shared/specific.
 
-- [ ] **Step 1: Ecrire les tests de routage en echec**
+- [x] **Step 1: Ecrire les tests de routage en echec**
 
   Dans un home temporaire, verifier :
 
@@ -387,8 +392,10 @@ verifiable pour les quatre harnesses.
   - copie reelle, non symlink, dans le home Codex Windows temporaire.
   - parite de l'arbre complet de chaque skill promu, pas seulement de
     `SKILL.md`.
+  - miroir natif OpenCode sans skill provenant de `~/.claude/skills` lorsque
+    son environnement gere est charge.
 
-- [ ] **Step 2: Verifier l'echec cible**
+- [x] **Step 2: Verifier l'echec cible**
 
   ```bash
   bash tests/test-install.sh
@@ -397,20 +404,20 @@ verifiable pour les quatre harnesses.
   Attendu : les assertions du hub et du miroir Claude echouent avec
   l'installateur actuel.
 
-- [ ] **Step 3: Implementer la reconciliation declarative**
+- [x] **Step 3: Implementer la reconciliation declarative**
 
   Remplacer le prune historique du hub par un calcul de l'ensemble desire.
   Supprimer uniquement les symlinks casses ou pointant dans `agent-config` dont
   le nom n'est plus desire. Preserver les fichiers, repertoires et liens tiers.
   Creer ensuite les liens/copies manquants.
 
-- [ ] **Step 4: Deplacer uniquement les skills prouves identiques**
+- [x] **Step 4: Deplacer uniquement les skills prouves identiques**
 
   Deplacer `api-design`, `deployment`, `grill-with-docs`, `mvp`,
   `nvim-config`, `stack-python`, `stack-rust` et `stack-ts`. Garder les quatre
   skills divergents dans les racines specifiques, sans arbitrage implicite.
 
-- [ ] **Step 5: Verifier et committer**
+- [x] **Step 5: Verifier et committer**
 
   ```bash
   bash tests/test-install.sh
@@ -435,7 +442,7 @@ verifiable pour les quatre harnesses.
 - Produces: `render_instructions HARNESS TARGET`, qui ecrit atomiquement
   `common + newline + overlay` vers la cible native.
 
-- [ ] **Step 1: Ecrire les tests du renderer en echec**
+- [x] **Step 1: Ecrire les tests du renderer en echec**
 
   Verifier sous home temporaire :
 
@@ -448,7 +455,7 @@ verifiable pour les quatre harnesses.
   - bandeau `Fichier genere - modifier agent-config` dans chaque rendu;
   - echec de `--check` si `~/.agents/AGENTS.md` existe, sans suppression.
 
-- [ ] **Step 2: Extraire conservativement le socle**
+- [x] **Step 2: Extraire conservativement le socle**
 
   Placer dans `common.md` seulement les politiques semantiquement identiques :
   exploration, question en cas d'ambiguite, minimalisme, tests, preuve
@@ -458,20 +465,20 @@ verifiable pour les quatre harnesses.
   Inliner le contenu actuel de `RTK.md` dans l'overlay Claude et retirer
   l'import `@RTK.md`.
 
-- [ ] **Step 3: Interdire les contradictions**
+- [x] **Step 3: Interdire les contradictions**
 
   Reformuler une politique commune en terme neutre si un harness doit la
   specialiser. Ne jamais conserver une regle dans `common.md` puis ajouter son
   contraire dans un overlay. Ajouter au test une liste des titres qui ne
   doivent apparaitre qu'une fois dans chaque rendu.
 
-- [ ] **Step 4: Implementer le rendu atomique**
+- [x] **Step 4: Implementer le rendu atomique**
 
   Rendre dans un fichier temporaire place pres de la cible, comparer avec la
   cible existante, sauvegarder une cible non geree si necessaire, puis utiliser
   `mv` pour l'installation finale. En mode `--check`, ne rien ecrire.
 
-- [ ] **Step 5: Verifier les quatre rendus et committer**
+- [x] **Step 5: Verifier les quatre rendus et committer**
 
   ```bash
   bash tests/test-instructions.sh
@@ -499,7 +506,7 @@ verifiable pour les quatre harnesses.
 - Produces: quatre deploiements independants selectionnables par
   `./install.sh --only <harness>`.
 
-- [ ] **Step 1: Classifier la mutabilite de chaque fichier**
+- [x] **Step 1: Classifier la mutabilite de chaque fichier**
 
   Pour chaque fichier, documenter dans `README.md` une strategie parmi :
 
@@ -513,14 +520,14 @@ verifiable pour les quatre harnesses.
   applications les reecrivent. Documenter explicitement les cles source-owned
   et runtime-owned avant d'implementer la fusion.
 
-- [ ] **Step 2: Ecrire les tests de selection en echec**
+- [x] **Step 2: Ecrire les tests de selection en echec**
 
   Executer chaque `--only` dans un home temporaire et verifier qu'aucun fichier
   d'un autre harness n'est cree ou modifie. Ajouter une fixture de fichier
   mutable contenant une cle runtime inconnue et verifier sa preservation pour
   toute strategie `merge`.
 
-- [ ] **Step 3: Implementer le dispatcher**
+- [x] **Step 3: Implementer le dispatcher**
 
   Le parseur accepte exactement `--only`, `--check`, `--dry-run` et `--help`.
   Une valeur ou option inconnue termine non-zero avant mutation. Sans `--only`,
@@ -529,20 +536,22 @@ verifiable pour les quatre harnesses.
   les configurations tous les chemins vers les anciens depots. Les scripts de
   notification utilisent l'asset deploye, jamais son ancien chemin source.
 
-- [ ] **Step 4: Conserver les surfaces Claude externes**
+- [x] **Step 4: Conserver les surfaces Claude externes**
 
   Reprendre `ccstatusline`, commands, agents et le submodule Anthropic avec son
   allowlist de huit skills. Ne supprimer aucune capacite existante sans decision
   explicite dans `docs/deployment-inventory.md`.
 
-- [ ] **Step 5: Mettre OpenCode sous gestion declarative**
+- [x] **Step 5: Mettre OpenCode sous gestion declarative**
 
   Importer `~/.config/opencode/opencode.json` seulement apres comparaison avec
   la documentation et exclusion de tout secret. Sauvegarder le fichier runtime
   existant lors du premier deploiement; ne pas le modifier pendant les tests
-  sous home temporaire.
+  sous home temporaire. Desactiver la compatibilite des skills Claude via le
+  bloc gere de `~/.profile.local`, puis verifier avec le binaire reel que seuls
+  les huit miroirs natifs sont exposes.
 
-- [ ] **Step 6: Verifier et committer**
+- [x] **Step 6: Verifier et committer**
 
   ```bash
   bash tests/test-install.sh
@@ -567,25 +576,25 @@ verifiable pour les quatre harnesses.
 - Produces: copies reelles des artefacts geres; preservation stricte d'un
   `config.toml` Windows existant.
 
-- [ ] **Step 1: Etendre la fixture Windows**
+- [x] **Step 1: Etendre la fixture Windows**
 
   Inclure dans la fixture des sections runtime representatives : `[desktop]`,
   un plugin Chrome, Computer Use et une section inconnue. Le test doit comparer
   le hash du fichier avant et apres installation.
 
-- [ ] **Step 2: Tester la premiere installation et la mise a jour**
+- [x] **Step 2: Tester la premiere installation et la mise a jour**
 
   Verifier que les instructions, skills, agents, rules, scripts et assets sont
   des fichiers/repertoires reels cote Windows. Verifier que `config.toml` est
   cree en seed-only lorsqu'il manque et laisse byte-identique lorsqu'il existe.
 
-- [ ] **Step 3: Executer deux installations consecutives**
+- [x] **Step 3: Executer deux installations consecutives**
 
   Comparer l'arbre, les types de fichiers et les hashes apres chaque execution.
   La seconde execution ne doit creer aucune sauvegarde supplementaire ni
   changer le resultat.
 
-- [ ] **Step 4: Verifier et committer**
+- [x] **Step 4: Verifier et committer**
 
   ```bash
   bash tests/test-install.sh
@@ -608,12 +617,12 @@ verifiable pour les quatre harnesses.
 - Produces: `--dry-run`, qui affiche les actions sans ecrire, et `--check`, qui
   retourne zero uniquement lorsque toutes les cibles classees sont conformes.
 
-- [ ] **Step 1: Ecrire les tests de non-mutation en echec**
+- [x] **Step 1: Ecrire les tests de non-mutation en echec**
 
   Capturer les hashes et types de l'arbre temporaire avant et apres `--dry-run`
   puis `--check`. Les deux modes doivent laisser l'arbre byte-identique.
 
-- [ ] **Step 2: Definir les controles de `--check`**
+- [x] **Step 2: Definir les controles de `--check`**
 
   Verifier : rendus d'instructions, destinations et types des skills, absence de
   doublons, liens casses, fichiers copies, JSON/TOML parsables, executabilite
@@ -622,13 +631,13 @@ verifiable pour les quatre harnesses.
   Verifier aussi l'absence de `~/.agents/AGENTS.md` et des anciens noms de depot
   dans tout artefact gere ou script deploye.
 
-- [ ] **Step 3: Implementer un plan d'actions partage**
+- [x] **Step 3: Implementer un plan d'actions partage**
 
   Construire les actions une seule fois, puis utiliser un backend `apply`,
   `print` ou `compare`. Ne pas maintenir trois parcours independants qui
   pourraient diverger.
 
-- [ ] **Step 4: Verifier et committer**
+- [x] **Step 4: Verifier et committer**
 
   ```bash
   bash tests/test-check.sh

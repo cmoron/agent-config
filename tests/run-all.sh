@@ -10,10 +10,14 @@ tests=(
   test-instructions.sh
   test-configs.sh
   test-windows.sh
+  test-safety.sh
   test-check.sh
   test-hooks.sh
   test-claude-extras.sh
   test-codex-plugins.sh
+  test-update.sh
+  test-cutover-guard.sh
+  test-opencode.sh
 )
 
 for test_file in "${tests[@]}"; do

@@ -123,12 +123,3 @@ enabled = true
 
 [plugins."ponytail@ponytail"]
 enabled = true
-
-[projects."/home/cyril/src/agent-config"]
-trust_level = "trusted"
-
-[projects."/Users/cyril/src/lotusim-lab"]
-trust_level = "trusted"
-
-[projects."/home/cyril/src/LOTUSim"]
-trust_level = "trusted"

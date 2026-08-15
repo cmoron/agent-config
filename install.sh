@@ -6,13 +6,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE=apply
 ONLY=""
 CHECK_FAILED=0
-BACKUP_STAMP="$(date +%Y%m%d-%H%M%S)"
+BACKUP_STAMP="${AGENT_CONFIG_BACKUP_STAMP:-$(date +%Y%m%d-%H%M%S-%N)-$$}"
 
 CLAUDE_DIR="${AGENT_CONFIG_CLAUDE_DIR:-$HOME/.claude}"
 CODEX_DIR="${AGENT_CONFIG_CODEX_DIR:-$HOME/.codex}"
 KIMI_DIR="${AGENT_CONFIG_KIMI_DIR:-$HOME/.kimi-code}"
 OPENCODE_DIR="${AGENT_CONFIG_OPENCODE_DIR:-$HOME/.config/opencode}"
 AGENTS_DIR="${AGENT_CONFIG_AGENTS_DIR:-$HOME/.agents}"
+STATE_DIR="${AGENT_CONFIG_STATE_DIR:-$HOME/.config/agent-config}"
+PROFILE_LOCAL="${AGENT_CONFIG_PROFILE_LOCAL:-$HOME/.profile.local}"
+PROFILE_BLOCK_BEGIN='# >>> agent-config: opencode >>>'
+PROFILE_BLOCK_END='# <<< agent-config: opencode <<<'
 
 if [ "${AGENT_CONFIG_WINDOWS_CODEX_DIR+x}" = x ]; then
   WINDOWS_CODEX_DIR="$AGENT_CONFIG_WINDOWS_CODEX_DIR"
@@ -95,6 +99,39 @@ case "$ONLY" in
     exit 2
     ;;
 esac
+
+validate_safe_path() {
+  local variable="$1"
+  local path="$2"
+  local normalized
+
+  if [ -z "$path" ] || [[ "$path" != /* ]]; then
+    printf 'unsafe path override: %s=%s (expected an absolute path)\n' \
+      "$variable" "$path" >&2
+    return 1
+  fi
+  normalized="$(realpath -m -- "$path")"
+  if [ "$normalized" = / ]; then
+    printf 'unsafe path override: %s=%s (filesystem root is forbidden)\n' \
+      "$variable" "$path" >&2
+    return 1
+  fi
+}
+
+validate_runtime_paths() {
+  validate_safe_path AGENT_CONFIG_CLAUDE_DIR "$CLAUDE_DIR"
+  validate_safe_path AGENT_CONFIG_CODEX_DIR "$CODEX_DIR"
+  validate_safe_path AGENT_CONFIG_KIMI_DIR "$KIMI_DIR"
+  validate_safe_path AGENT_CONFIG_OPENCODE_DIR "$OPENCODE_DIR"
+  validate_safe_path AGENT_CONFIG_AGENTS_DIR "$AGENTS_DIR"
+  validate_safe_path AGENT_CONFIG_STATE_DIR "$STATE_DIR"
+  validate_safe_path AGENT_CONFIG_PROFILE_LOCAL "$PROFILE_LOCAL"
+  if [ -n "$WINDOWS_CODEX_DIR" ]; then
+    validate_safe_path AGENT_CONFIG_WINDOWS_CODEX_DIR "$WINDOWS_CODEX_DIR"
+  fi
+}
+
+validate_runtime_paths
 
 selected_harnesses() {
   if [ -n "$ONLY" ]; then
@@ -204,6 +241,30 @@ validate_harness_sources() {
         printf 'invalid source JSON: %s\n' "$source" >&2
         return 1
       }
+      if [ -f "$PROFILE_LOCAL" ] && [ ! -L "$PROFILE_LOCAL" ]; then
+        awk \
+          -v begin_marker="$PROFILE_BLOCK_BEGIN" \
+          -v end_marker="$PROFILE_BLOCK_END" '
+            $0 == begin_marker {
+              begins++
+              if (state != 0) bad = 1
+              state = 1
+            }
+            $0 == end_marker {
+              ends++
+              if (state != 1) bad = 1
+              state = 2
+            }
+            END {
+              clean = begins == 0 && ends == 0
+              managed = !bad && begins == 1 && ends == 1 && state == 2
+              exit !(clean || managed)
+            }
+          ' "$PROFILE_LOCAL" || {
+          printf 'malformed managed block in %s\n' "$PROFILE_LOCAL" >&2
+          return 1
+        }
+      fi
       ;;
   esac
 }
@@ -216,6 +277,17 @@ ensure_parent() {
   fi
 }
 
+render_temp_for() {
+  local target="$1"
+
+  if [ "$MODE" = apply ]; then
+    ensure_parent "$target"
+    mktemp "$(dirname "$target")/.agent-config.tmp.XXXXXX"
+  else
+    mktemp
+  fi
+}
+
 ensure_directory() {
   local harness="$1"
   local target="$2"
@@ -225,7 +297,10 @@ ensure_directory() {
   fi
   case "$MODE" in
     check) report_drift "$harness" "$target" directory ;;
-    dry-run) printf 'WOULD MKDIR %s\n' "$target" ;;
+    dry-run)
+      plan_backup_existing "$target" "$(runtime_root_for "$harness")"
+      printf 'WOULD MKDIR %s\n' "$target"
+      ;;
     apply)
       if [ -e "$target" ] || [ -L "$target" ]; then
         backup_existing "$target" "$(runtime_root_for "$harness")"
@@ -236,10 +311,41 @@ ensure_directory() {
   esac
 }
 
-backup_existing() {
+backup_path_for() {
   local target="$1"
   local root="$2"
   local relative
+  local base
+  local candidate
+  local suffix=0
+
+  relative="${target#"$root"/}"
+  if [ "$relative" = "$target" ]; then
+    relative="$(basename "$target")"
+  fi
+  base="$root/backups/$BACKUP_STAMP/$relative"
+  candidate="$base"
+  while [ -e "$candidate" ] || [ -L "$candidate" ]; do
+    suffix=$((suffix + 1))
+    candidate="$base.$suffix"
+  done
+  printf '%s\n' "$candidate"
+}
+
+plan_backup_existing() {
+  local target="$1"
+  local root="$2"
+  local backup
+
+  [ -e "$target" ] || [ -L "$target" ] || return 0
+  managed_link "$target" && return 0
+  backup="$(backup_path_for "$target" "$root")"
+  printf 'WOULD BACKUP %s -> %s\n' "$target" "$backup"
+}
+
+backup_existing() {
+  local target="$1"
+  local root="$2"
   local backup
 
   [ -e "$target" ] || [ -L "$target" ] || return 0
@@ -248,12 +354,9 @@ backup_existing() {
     return 0
   fi
 
-  relative="${target#"$root"/}"
-  if [ "$relative" = "$target" ]; then
-    relative="$(basename "$target")"
-  fi
-  backup="$root/backups/$BACKUP_STAMP/$relative"
+  backup="$(backup_path_for "$target" "$root")"
   mkdir -p "$(dirname "$backup")"
+  chmod 700 "$root/backups" "$root/backups/$BACKUP_STAMP"
   mv "$target" "$backup"
   printf 'BACKUP %s %s\n' "$target" "$backup"
 }
@@ -273,6 +376,7 @@ deploy_link() {
       report_drift "$harness" "$target" link
       ;;
     dry-run)
+      plan_backup_existing "$target" "$root"
       printf 'WOULD LINK %s -> %s\n' "$target" "$source"
       ;;
     apply)
@@ -304,6 +408,7 @@ deploy_copy_file() {
       report_drift "$harness" "$target" content
       ;;
     dry-run)
+      plan_backup_existing "$target" "$root"
       printf 'WOULD COPY %s -> %s\n' "$source" "$target"
       ;;
     apply)
@@ -338,6 +443,7 @@ deploy_rendered_file() {
       rm -f "$rendered"
       ;;
     dry-run)
+      plan_backup_existing "$target" "$root"
       printf 'WOULD WRITE %s\n' "$target"
       rm -f "$rendered"
       ;;
@@ -363,7 +469,10 @@ deploy_seed_file() {
   fi
   case "$MODE" in
     check) report_drift "$harness" "$target" missing ;;
-    dry-run) printf 'WOULD SEED %s -> %s\n' "$source" "$target" ;;
+    dry-run)
+      plan_backup_existing "$target" "$root"
+      printf 'WOULD SEED %s -> %s\n' "$source" "$target"
+      ;;
     apply)
       ensure_parent "$target"
       backup_existing "$target" "$root"
@@ -404,22 +513,24 @@ render_codex_config() {
   local output="$1"
   local source="$ROOT/harnesses/codex/config.toml"
   local target="$CODEX_DIR/config.toml"
-  local hook_state
+  local runtime_state
 
   cp "$source" "$output"
   [ -f "$target" ] || return 0
 
-  hook_state="$(mktemp)"
+  runtime_state="$(mktemp)"
   awk '
-    /^\[hooks\.state(\]|\.")/ { keep = 1 }
-    /^\[/ && $0 !~ /^\[hooks\.state(\]|\.")/ { keep = 0 }
+    /^\[hooks\.state(\]|\.")/ || /^\[projects(\]|\.")/ { keep = 1 }
+    /^\[/ && $0 !~ /^\[hooks\.state(\]|\.")/ && $0 !~ /^\[projects(\]|\.")/ {
+      keep = 0
+    }
     keep
-  ' "$target" >"$hook_state"
-  if [ -s "$hook_state" ]; then
+  ' "$target" >"$runtime_state"
+  if [ -s "$runtime_state" ]; then
     printf '\n' >>"$output"
-    cat "$hook_state" >>"$output"
+    cat "$runtime_state" >>"$output"
   fi
-  rm -f "$hook_state"
+  rm -f "$runtime_state"
 }
 
 render_kimi_config() {
@@ -432,6 +543,27 @@ render_kimi_config() {
   else
     awk -f "$ROOT/scripts/merge-kimi-config.awk" "$source" "$source" >"$output"
   fi
+}
+
+render_profile_local() {
+  local output="$1"
+
+  if [ -f "$PROFILE_LOCAL" ] && [ ! -L "$PROFILE_LOCAL" ]; then
+    awk \
+      -v begin_marker="$PROFILE_BLOCK_BEGIN" \
+      -v end_marker="$PROFILE_BLOCK_END" '
+        $0 == begin_marker { skip = 1; next }
+        $0 == end_marker { skip = 0; next }
+        !skip { print }
+      ' "$PROFILE_LOCAL" >"$output"
+  else
+    : >"$output"
+  fi
+  {
+    printf '%s\n' "$PROFILE_BLOCK_BEGIN"
+    cat "$ROOT/harnesses/opencode/env.sh"
+    printf '%s\n' "$PROFILE_BLOCK_END"
+  } >>"$output"
 }
 
 deploy_named_files() {
@@ -462,7 +594,7 @@ deploy_harness_config() {
 
   case "$harness" in
     claude)
-      rendered="$(mktemp)"
+      rendered="$(render_temp_for "$CLAUDE_DIR/settings.json")"
       render_claude_settings "$rendered"
       deploy_rendered_file claude "$rendered" "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR" 600
       deploy_link claude "$ROOT/harnesses/claude/scripts" "$CLAUDE_DIR/scripts" "$CLAUDE_DIR"
@@ -472,7 +604,7 @@ deploy_harness_config() {
       deploy_link claude "$ROOT/harnesses/claude/config/ccstatusline" "$HOME/.config/ccstatusline" "$HOME/.config"
       ;;
     codex)
-      rendered="$(mktemp)"
+      rendered="$(render_temp_for "$CODEX_DIR/config.toml")"
       render_codex_config "$rendered"
       deploy_rendered_file codex "$rendered" "$CODEX_DIR/config.toml" "$CODEX_DIR" 600
       deploy_copy_file codex "$ROOT/harnesses/codex/hooks.json" "$CODEX_DIR/hooks.json" "$CODEX_DIR" 644
@@ -482,7 +614,7 @@ deploy_harness_config() {
       deploy_link codex "$ROOT/harnesses/codex/agents" "$CODEX_DIR/agents" "$CODEX_DIR"
       ;;
     kimi)
-      rendered="$(mktemp)"
+      rendered="$(render_temp_for "$KIMI_DIR/config.toml")"
       render_kimi_config "$rendered"
       deploy_rendered_file kimi "$rendered" "$KIMI_DIR/config.toml" "$KIMI_DIR" 600
       deploy_copy_file kimi "$ROOT/harnesses/kimi/tui.toml" "$KIMI_DIR/tui.toml" "$KIMI_DIR" 644
@@ -492,6 +624,9 @@ deploy_harness_config() {
       ;;
     opencode)
       deploy_copy_file opencode "$ROOT/harnesses/opencode/opencode.json" "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR" 600
+      rendered="$(render_temp_for "$PROFILE_LOCAL")"
+      render_profile_local "$rendered"
+      deploy_rendered_file opencode "$rendered" "$PROFILE_LOCAL" "$STATE_DIR" 600
       ;;
   esac
 }
@@ -516,7 +651,7 @@ deploy_instructions() {
 
   target="$(instruction_target_for "$harness")"
   root="$(runtime_root_for "$harness")"
-  rendered="$(mktemp)"
+  rendered="$(render_temp_for "$target")"
   render_instructions_to "$harness" "$rendered"
 
   if [ -f "$target" ] && [ ! -L "$target" ] && cmp -s "$rendered" "$target"; then
@@ -530,6 +665,7 @@ deploy_instructions() {
       rm -f "$rendered"
       ;;
     dry-run)
+      plan_backup_existing "$target" "$root"
       printf 'WOULD RENDER %s\n' "$target"
       rm -f "$rendered"
       ;;
@@ -625,7 +761,6 @@ check_skill_collisions() {
 }
 
 deploy_shared_hub() {
-  local harness="$1"
   local names=()
   local source
   local name
@@ -787,25 +922,35 @@ prepare_windows_replacement() {
   fi
 }
 
+plan_windows_replacement() {
+  local relative="$1"
+  local target="$WINDOWS_CODEX_DIR/$relative"
+
+  [ -e "$target" ] || [ -L "$target" ] || return 0
+  windows_path_was_managed "$relative" && return 0
+  plan_backup_existing "$target" "$WINDOWS_CODEX_DIR"
+}
+
 deploy_windows_file() {
   local source="$1"
   local relative="$2"
   local required_mode="${3:-644}"
   local target="$WINDOWS_CODEX_DIR/$relative"
-  local current_mode=""
 
   validate_windows_relative_path "$relative"
   WINDOWS_MANAGED_PATHS+=("$relative")
   if [ -f "$target" ] && [ ! -L "$target" ]; then
-    current_mode="$(stat -c '%a' "$target")"
-    if cmp -s "$source" "$target" && [ "$current_mode" = "$required_mode" ]; then
+    if cmp -s "$source" "$target"; then
       return 0
     fi
   fi
 
   case "$MODE" in
     check) report_drift windows "$target" content ;;
-    dry-run) printf 'WOULD COPY %s -> %s\n' "$source" "$target" ;;
+    dry-run)
+      plan_windows_replacement "$relative"
+      printf 'WOULD COPY %s -> %s\n' "$source" "$target"
+      ;;
     apply)
       ensure_parent "$target"
       prepare_windows_replacement "$relative"
@@ -824,16 +969,16 @@ deploy_windows_tree() {
   validate_windows_relative_path "$relative"
   WINDOWS_MANAGED_PATHS+=("$relative")
   if [ -d "$target" ] && [ ! -L "$target" ] \
-    && diff -qr "$source" "$target" >/dev/null \
-    && cmp -s \
-      <(cd "$source" && find . -printf '%P %y %m\n' | sort) \
-      <(cd "$target" && find . -printf '%P %y %m\n' | sort); then
+    && diff -qr "$source" "$target" >/dev/null; then
     return 0
   fi
 
   case "$MODE" in
     check) report_drift windows "$target" content ;;
-    dry-run) printf 'WOULD COPY_TREE %s -> %s\n' "$source" "$target" ;;
+    dry-run)
+      plan_windows_replacement "$relative"
+      printf 'WOULD COPY_TREE %s -> %s\n' "$source" "$target"
+      ;;
     apply)
       ensure_parent "$target"
       prepare_windows_replacement "$relative"
@@ -868,7 +1013,7 @@ reconcile_windows_manifest() {
     done <"$previous_marker"
   done
 
-  desired_file="$(mktemp)"
+  desired_file="$(render_temp_for "$marker")"
   printf '%s\n' "${WINDOWS_MANAGED_PATHS[@]}" | sort -u >"$desired_file"
   case "$MODE" in
     check)
@@ -883,6 +1028,9 @@ reconcile_windows_manifest() {
       if [ ! -f "$marker" ] || ! cmp -s "$desired_file" "$marker" || [ -e "$legacy_marker" ]; then
         printf 'WOULD WRITE %s\n' "$marker"
       fi
+      if [ -e "$legacy_marker" ] || [ -L "$legacy_marker" ]; then
+        printf 'WOULD REMOVE %s\n' "$legacy_marker"
+      fi
       ;;
     apply)
       if [ ! -f "$marker" ] || ! cmp -s "$desired_file" "$marker"; then
@@ -892,7 +1040,10 @@ reconcile_windows_manifest() {
         chmod 644 "$marker"
         printf 'WRITE %s\n' "$marker"
       fi
-      rm -f "$legacy_marker"
+      if [ -e "$legacy_marker" ] || [ -L "$legacy_marker" ]; then
+        rm -f "$legacy_marker"
+        printf 'REMOVE %s\n' "$legacy_marker"
+      fi
       ;;
   esac
   [ -z "$desired_file" ] || rm -f "$desired_file"
@@ -926,7 +1077,7 @@ deploy_instructions_windows() {
   local target="$WINDOWS_CODEX_DIR/AGENTS.md"
 
   WINDOWS_MANAGED_PATHS+=(AGENTS.md)
-  rendered="$(mktemp)"
+  rendered="$(render_temp_for "$target")"
   render_instructions_to codex "$rendered"
   if [ -f "$target" ] && [ ! -L "$target" ] && cmp -s "$rendered" "$target"; then
     rm -f "$rendered"
@@ -938,6 +1089,7 @@ deploy_instructions_windows() {
       rm -f "$rendered"
       ;;
     dry-run)
+      plan_windows_replacement AGENTS.md
       printf 'WOULD RENDER %s\n' "$target"
       rm -f "$rendered"
       ;;
@@ -962,18 +1114,15 @@ deploy_harness_core() {
       bootstrap_claude_plugins
       ;;
     codex)
-      deploy_shared_hub codex
       deploy_specific_skills codex "$CODEX_DIR/skills" "$CODEX_DIR" no
       deploy_windows_core
       bootstrap_codex_plugins
       ;;
     kimi)
-      deploy_shared_hub kimi
       deploy_specific_skills kimi "$KIMI_DIR/skills" "$KIMI_DIR" no
       ;;
     opencode)
-      deploy_shared_hub opencode
-      deploy_specific_skills opencode "$OPENCODE_DIR/skills" "$OPENCODE_DIR" no
+      deploy_specific_skills opencode "$OPENCODE_DIR/skills" "$OPENCODE_DIR" yes
       ;;
   esac
 }
@@ -1015,6 +1164,8 @@ check_legacy_references() {
     [ -n "$file" ] || continue
     report_drift "$harness" "$file" legacy-reference
   done < <(
+    # Also match a literal runtime $HOME.
+    # shellcheck disable=SC2016
     grep -RIlE \
       '(/home/[^/]+|\$HOME)/src/(claude-config|codex-config|kimi-config)' \
       -- "$@" 2>/dev/null | sort -u || true
@@ -1040,7 +1191,6 @@ check_harness_runtime() {
       if [ -n "$WINDOWS_CODEX_DIR" ]; then
         check_runtime_file windows "$WINDOWS_CODEX_DIR/config.toml" toml
         check_runtime_file windows "$WINDOWS_CODEX_DIR/hooks.json" json
-        check_executable_scripts windows "$WINDOWS_CODEX_DIR/scripts"
         check_legacy_references windows \
           "$WINDOWS_CODEX_DIR/AGENTS.md" \
           "$WINDOWS_CODEX_DIR/hooks.json" \
@@ -1069,6 +1219,15 @@ mapfile -t HARNESSES < <(selected_harnesses)
 for harness in "${HARNESSES[@]}"; do
   check_skill_collisions "$harness"
   validate_harness_sources "$harness"
+done
+
+for harness in "${HARNESSES[@]}"; do
+  case "$harness" in
+    codex|kimi)
+      deploy_shared_hub
+      break
+      ;;
+  esac
 done
 
 for harness in "${HARNESSES[@]}"; do

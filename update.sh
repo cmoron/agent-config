@@ -2,5 +2,8 @@
 
 set -euo pipefail
 
-echo "agent-config: update is disabled until the consolidated installer is verified" >&2
-exit 1
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+git -C "$ROOT" pull --ff-only
+git -C "$ROOT" submodule update --init --recursive
+exec "$ROOT/install.sh" "$@"

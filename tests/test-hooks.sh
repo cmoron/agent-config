@@ -39,6 +39,8 @@ jq -e '
   | all(contains("$HOME/src/claude-config") | not)
 ' "$ROOT/harnesses/claude/settings.json" >/dev/null
 
+# Assert the literal portable $HOME reference.
+# shellcheck disable=SC2016
 grep -q 'command = "$HOME/.kimi-code/scripts/format-on-save.sh"' \
   "$ROOT/harnesses/kimi/config.toml"
 

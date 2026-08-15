@@ -9,6 +9,9 @@ FNR == NR {
   if ($0 ~ /^default_permission_mode[[:space:]]*=/) {
     permission_line = $0
   }
+  if ($0 ~ /^merge_all_available_skills[[:space:]]*=/) {
+    skills_merge_line = $0
+  }
   if ($0 == "[[permission.rules]]" || $0 == "[[hooks]]") {
     capture = 1
   } else if ($0 ~ /^\[\[?[^]]+\]\]?$/ && capture) {
@@ -47,11 +50,26 @@ FNR == NR {
     next
   }
 
-  if ($0 ~ /^\[\[?[^]]+\]\]?$/ && !permission_written) {
+  if ($0 ~ /^merge_all_available_skills[[:space:]]*=/) {
+    if (!skills_merge_written) {
+      flush_pending_blanks()
+      print skills_merge_line
+      skills_merge_written = 1
+    }
+    next
+  }
+
+  if ($0 ~ /^\[\[?[^]]+\]\]?$/ && (!permission_written || !skills_merge_written)) {
     flush_pending_blanks()
-    print permission_line
+    if (!permission_written) {
+      print permission_line
+      permission_written = 1
+    }
+    if (!skills_merge_written) {
+      print skills_merge_line
+      skills_merge_written = 1
+    }
     print ""
-    permission_written = 1
   }
   flush_pending_blanks()
   print
@@ -60,6 +78,9 @@ FNR == NR {
 END {
   if (!permission_written) {
     print permission_line
+  }
+  if (!skills_merge_written) {
+    print skills_merge_line
   }
   pending_blanks = 0
   print ""

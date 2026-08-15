@@ -5,6 +5,9 @@ default_model = "kimi-code/k3"
 # Équivalent du "bypassPermissions" de Claude Code : auto-approve des outils,
 # l'agent peut encore poser des questions ("auto" = ne demande plus rien du tout).
 default_permission_mode = "yolo"
+# Keep the Kimi-specific directory isolated from Claude/Codex compatibility
+# roots while retaining the independent ~/.agents/skills generic group.
+merge_all_available_skills = false
 
 [providers."managed:kimi-code"]
 type = "kimi"
@@ -68,7 +71,7 @@ storage = "file"
 key = "oauth/kimi-code"
 
 # ---------------------------------------------------------------------------
-# Permissions — deny list portée de claude-config/settings.json
+# Permissions — deny list portee depuis la configuration Claude
 # (première règle qui matche gagne ; deny l'emporte même en mode yolo)
 # ---------------------------------------------------------------------------
 
