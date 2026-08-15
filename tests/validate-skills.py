@@ -7,6 +7,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 
 SKILL_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -15,7 +17,7 @@ async def read_text(path: Path) -> str:
     return await asyncio.to_thread(path.read_text, encoding="utf-8")
 
 
-def parse_frontmatter(text: str) -> dict[str, str]:
+def parse_frontmatter(text: str) -> dict[str, object]:
     lines = text.splitlines()
     if not lines or lines[0] != "---":
         raise ValueError("missing YAML frontmatter opener")
@@ -25,15 +27,10 @@ def parse_frontmatter(text: str) -> dict[str, str]:
     except ValueError as error:
         raise ValueError("missing YAML frontmatter closer") from error
 
-    values: dict[str, str] = {}
-    for line in lines[1:closing]:
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if ":" not in line:
-            raise ValueError(f"invalid frontmatter line: {line}")
-        key, value = line.split(":", 1)
-        values[key.strip()] = value.strip().strip("\"'")
-    return values
+    loaded = yaml.safe_load("\n".join(lines[1:closing]))
+    if not isinstance(loaded, dict):
+        raise ValueError("frontmatter must be a YAML mapping")
+    return loaded
 
 
 async def validate_skill(skill_dir: Path) -> list[str]:
@@ -43,15 +40,17 @@ async def validate_skill(skill_dir: Path) -> list[str]:
 
     try:
         frontmatter = parse_frontmatter(await read_text(skill_file))
-    except (OSError, UnicodeError, ValueError) as error:
+    except (OSError, UnicodeError, ValueError, yaml.YAMLError) as error:
         return [f"{skill_file}: {error}"]
 
     errors: list[str] = []
     for key in ("name", "description"):
-        if not frontmatter.get(key):
+        value = frontmatter.get(key)
+        if not isinstance(value, str) or not value.strip():
             errors.append(f"{skill_file}: missing frontmatter key: {key}")
 
-    name = frontmatter.get("name", "")
+    raw_name = frontmatter.get("name")
+    name = raw_name if isinstance(raw_name, str) else ""
     if name and name != skill_dir.name:
         errors.append(
             f"{skill_file}: name must match directory ({name!r} != {skill_dir.name!r})"

@@ -1,6 +1,6 @@
 ---
 name: nvim-config
-description: Pour modifier la configuration Neovim : plugins lazy.nvim, LSP, keybindings, formatters.
+description: "Pour modifier la configuration Neovim : plugins lazy.nvim, LSP, keybindings, formatters."
 ---
 
 # Neovim Config — ~/src/nvim-config
@@ -18,6 +18,7 @@ Configuration Neovim personnelle pour Neovim 0.11+. Symlink : `~/.config/nvim �
 ```
 
 Tout est dans `init.lua`, organisé en sections :
+
 1. Settings de base (options vim.opt)
 2. Autocmds (indentation par filetype, auto-reload)
 3. Mappings globaux
@@ -32,31 +33,31 @@ Tout est dans `init.lua`, organisé en sections :
 
 ## Plugins installés
 
-| Plugin | Rôle |
-|--------|------|
-| `lazy.nvim` | Gestionnaire de plugins |
-| `gruvbox` | Colorscheme |
-| `nvim-tree` | Explorateur de fichiers (F9) |
-| `bufferline` | Onglets de buffers |
-| `bufexplorer` | Gestionnaire de buffers (F12) |
-| `lualine` | Statusline (thème gruvbox) |
-| `which-key` | Découverte des raccourcis |
-| `telescope` | Fuzzy finder (Ctrl-P, `<leader>g`) |
-| `harpoon2` | Navigation rapide entre fichiers favoris |
-| `gitsigns` | Indicateurs Git dans la marge |
-| `vim-fugitive` | Interface Git (`:Git`) |
-| `Comment.nvim` | Commentaires (`gcc`, `<leader>c<leader>`) |
-| `nvim-autopairs` | Fermeture auto des parenthèses |
-| `vim-sneak` | Navigation 2 caractères (`s{c}{c}`) |
-| `conform.nvim` | Formatage (`<leader>f`) |
-| `nvim-colorizer` | Affichage couleurs CSS |
-| `indent-blankline` | Guides d'indentation |
-| `nvim-treesitter` | Syntaxe avancée |
-| `nvim-cmp` + sources | Autocomplétion (Ctrl-Space) |
-| `nvim-lspconfig` | Configuration LSP |
-| `trouble.nvim` | Diagnostics UI (`<leader>xx`) |
-| `nvim-jdtls` | LSP Java (lazy, ft=java) |
-| `copilot.vim` | GitHub Copilot |
+| Plugin               | Rôle                                      |
+| -------------------- | ----------------------------------------- |
+| `lazy.nvim`          | Gestionnaire de plugins                   |
+| `gruvbox`            | Colorscheme                               |
+| `nvim-tree`          | Explorateur de fichiers (F9)              |
+| `bufferline`         | Onglets de buffers                        |
+| `bufexplorer`        | Gestionnaire de buffers (F12)             |
+| `lualine`            | Statusline (thème gruvbox)                |
+| `which-key`          | Découverte des raccourcis                 |
+| `telescope`          | Fuzzy finder (Ctrl-P, `<leader>g`)        |
+| `harpoon2`           | Navigation rapide entre fichiers favoris  |
+| `gitsigns`           | Indicateurs Git dans la marge             |
+| `vim-fugitive`       | Interface Git (`:Git`)                    |
+| `Comment.nvim`       | Commentaires (`gcc`, `<leader>c<leader>`) |
+| `nvim-autopairs`     | Fermeture auto des parenthèses            |
+| `vim-sneak`          | Navigation 2 caractères (`s{c}{c}`)       |
+| `conform.nvim`       | Formatage (`<leader>f`)                   |
+| `nvim-colorizer`     | Affichage couleurs CSS                    |
+| `indent-blankline`   | Guides d'indentation                      |
+| `nvim-treesitter`    | Syntaxe avancée                           |
+| `nvim-cmp` + sources | Autocomplétion (Ctrl-Space)               |
+| `nvim-lspconfig`     | Configuration LSP                         |
+| `trouble.nvim`       | Diagnostics UI (`<leader>xx`)             |
+| `nvim-jdtls`         | LSP Java (lazy, ft=java)                  |
+| `copilot.vim`        | GitHub Copilot                            |
 
 ## LSP configurés (Neovim 0.11+ API native)
 
@@ -74,41 +75,42 @@ vim.lsp.enable({ "pyright", "bashls", "ts_ls", "svelte", "rust_analyzer", "ruff"
 
 ## Formatters (conform.nvim)
 
-| Filetype | Formatter | Installation |
-|----------|-----------|--------------|
-| Python | `ruff_fix` + `ruff_format` | `uv tool install ruff` |
-| Lua | `stylua` | `cargo install stylua` |
-| JS/TS/HTML/CSS/JSON/YAML/MD | `prettier` | `npm install -g prettier` |
-| XML | `xmllint` | `apt install libxml2-utils` |
-| Tous | `trim_whitespace` | intégré |
+| Filetype                    | Formatter                  | Installation                |
+| --------------------------- | -------------------------- | --------------------------- |
+| Python                      | `ruff_fix` + `ruff_format` | `uv tool install ruff`      |
+| Lua                         | `stylua`                   | `cargo install stylua`      |
+| JS/TS/HTML/CSS/JSON/YAML/MD | `prettier`                 | `npm install -g prettier`   |
+| XML                         | `xmllint`                  | `apt install libxml2-utils` |
+| Tous                        | `trim_whitespace`          | intégré                     |
 
 Format manuel : `<leader>f` — pas de format automatique à la sauvegarde.
 
 ## Raccourcis clés (non-standards)
 
-| Raccourci | Action |
-|-----------|--------|
-| `J` / `K` | Scroll rapide bas/haut (2/3 lignes) — ⚠️ K n'est PAS hover |
-| `H` | Hover LSP (documentation) — remplace K |
-| `<leader>n` / `<leader>N` | Diagnostic suivant/précédent |
-| `<leader>e` | Diagnostic float |
-| `<leader>rn` / `grn` | Rename symbole |
-| `<leader>ca` / `gra` | Code action |
-| `<C-p>` | Telescope find_files |
-| `<leader>g` | Telescope live_grep |
-| `<leader>p` | Telescope buffers |
-| `<leader>a` | Harpoon: ajouter fichier |
-| `<leader>h` | Harpoon: menu |
-| `<leader>1-4` | Harpoon: aller au fichier 1-4 |
-| `<leader>xx` | Trouble: toggle diagnostics |
-| `<leader>f` | Format buffer |
-| `<leader><CR>` | Reload config |
-| `F9` | Toggle NvimTree |
-| `F12` | BufExplorer |
+| Raccourci                 | Action                                                     |
+| ------------------------- | ---------------------------------------------------------- |
+| `J` / `K`                 | Scroll rapide bas/haut (2/3 lignes) — ⚠️ K n'est PAS hover |
+| `H`                       | Hover LSP (documentation) — remplace K                     |
+| `<leader>n` / `<leader>N` | Diagnostic suivant/précédent                               |
+| `<leader>e`               | Diagnostic float                                           |
+| `<leader>rn` / `grn`      | Rename symbole                                             |
+| `<leader>ca` / `gra`      | Code action                                                |
+| `<C-p>`                   | Telescope find_files                                       |
+| `<leader>g`               | Telescope live_grep                                        |
+| `<leader>p`               | Telescope buffers                                          |
+| `<leader>a`               | Harpoon: ajouter fichier                                   |
+| `<leader>h`               | Harpoon: menu                                              |
+| `<leader>1-4`             | Harpoon: aller au fichier 1-4                              |
+| `<leader>xx`              | Trouble: toggle diagnostics                                |
+| `<leader>f`               | Format buffer                                              |
+| `<leader><CR>`            | Reload config                                              |
+| `F9`                      | Toggle NvimTree                                            |
+| `F12`                     | BufExplorer                                                |
 
 ## Ajouter un plugin
 
 Ajouter dans le `require("lazy").setup({...})` en `init.lua` :
+
 ```lua
 {
     "author/plugin-name",

@@ -8,14 +8,14 @@ required_paths=(
   AGENTS.md
   README.md
   install.sh
+  pyproject.toml
+  scripts/update_upstreams.py
   update.sh
+  uv.lock
   instructions/common.md
   shared/assets/warcraft-3-paysan-travail-termine.mp3
   shared/skills/api-design/SKILL.md
   shared/skills/deployment/SKILL.md
-  shared/skills/grill-with-docs/ADR-FORMAT.md
-  shared/skills/grill-with-docs/CONTEXT-FORMAT.md
-  shared/skills/grill-with-docs/SKILL.md
   shared/skills/mvp/SKILL.md
   shared/skills/nvim-config/SKILL.md
   shared/skills/stack-python/SKILL.md
@@ -39,6 +39,7 @@ required_paths=(
   harnesses/opencode/instructions.overlay.md
   harnesses/opencode/env.sh
   harnesses/opencode/opencode.json
+  upstreams/mattpocock-skills/.claude-plugin/plugin.json
 )
 
 for path in "${required_paths[@]}"; do
@@ -47,6 +48,21 @@ for path in "${required_paths[@]}"; do
     exit 1
   fi
 done
+
+if [ -e "$ROOT/shared/skills/grill-with-docs" ]; then
+  printf '%s\n' 'local grill-with-docs must follow the Matt Pocock upstream' >&2
+  exit 1
+fi
+
+git config -f "$ROOT/.gitmodules" --get \
+  submodule.upstreams/mattpocock-skills.url \
+  | grep -qx 'https://github.com/mattpocock/skills.git'
+git config -f "$ROOT/.gitmodules" --get \
+  submodule.upstreams/mattpocock-skills.branch \
+  | grep -qx main
+git config -f "$ROOT/.gitmodules" --get \
+  submodule.harnesses/claude/upstream/anthropic-skills.branch \
+  | grep -qx main
 
 if [ -e "$ROOT/global/AGENTS.md" ]; then
   printf 'legacy path must not exist: global/AGENTS.md\n' >&2

@@ -26,6 +26,7 @@ Code, Codex, Kimi Code et OpenCode de Cyril.
 
 ```bash
 bash tests/test-structure.sh
+bash tests/test-python.sh
 bash -n install.sh update.sh tests/*.sh harnesses/*/scripts/*.sh
 git diff --check
 ```

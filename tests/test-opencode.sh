@@ -59,7 +59,13 @@ if command -v opencode >/dev/null 2>&1; then
     sh -c '. "$HOME/.profile.local"; exec opencode debug skill --pure' \
     >"$TEST_TMP/opencode-skills.json"
   jq -e 'any(.[]; .name == "api-design")' "$TEST_TMP/opencode-skills.json" >/dev/null
-  jq -e 'length == 8' "$TEST_TMP/opencode-skills.json" >/dev/null
+  jq -e 'any(.[]; .name == "ask-matt")' "$TEST_TMP/opencode-skills.json" >/dev/null
+  local_skill_count="$(find "$TEST_ROOT/shared/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+  matt_skill_count="$(jq '.skills | length' \
+    "$TEST_ROOT/upstreams/mattpocock-skills/.claude-plugin/plugin.json")"
+  expected_skill_count="$((local_skill_count + matt_skill_count))"
+  jq -e --argjson expected "$expected_skill_count" \
+    'length == $expected' "$TEST_TMP/opencode-skills.json" >/dev/null
   jq -e \
     'all(.[]; .location | contains("/.config/opencode/skills/"))' \
     "$TEST_TMP/opencode-skills.json" >/dev/null

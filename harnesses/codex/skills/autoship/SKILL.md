@@ -1,6 +1,6 @@
 ---
 name: autoship
-description: Produit une petite feature/fix en autonomie totale : map, plan, build, review, spec-gate, verification comportementale, doc et ship. Utiliser seulement quand l'utilisateur demande explicitement autoship, fire-and-forget, ou une livraison autonome a faible risque.
+description: "Produit une petite feature/fix en autonomie totale : map, plan, build, review, spec-gate, verification comportementale, doc et ship. Utiliser seulement quand l'utilisateur demande explicitement autoship, fire-and-forget, ou une livraison autonome a faible risque."
 ---
 
 # Autoship

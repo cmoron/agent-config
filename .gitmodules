@@ -1,3 +1,8 @@
 [submodule "harnesses/claude/upstream/anthropic-skills"]
 	path = harnesses/claude/upstream/anthropic-skills
 	url = https://github.com/anthropics/skills.git
+	branch = main
+[submodule "upstreams/mattpocock-skills"]
+	path = upstreams/mattpocock-skills
+	url = https://github.com/mattpocock/skills.git
+	branch = main

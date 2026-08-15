@@ -25,7 +25,23 @@ export AGENT_CONFIG_WINDOWS_CODEX_DIR=''
 
 grep -q '^plugin marketplace upgrade claude-plugins-official$' "$AGENT_CONFIG_CODEX_LOG"
 grep -q '^plugin marketplace upgrade ponytail$' "$AGENT_CONFIG_CODEX_LOG"
-grep -q '^plugin add context7@claude-plugins-official$' "$AGENT_CONFIG_CODEX_LOG"
-grep -q '^plugin add ponytail@ponytail$' "$AGENT_CONFIG_CODEX_LOG"
+
+python3 - "$TEST_ROOT/harnesses/codex/config.toml" <<'PY' >"$TEST_TMP/expected-plugins"
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as config_file:
+    config = tomllib.load(config_file)
+for name, values in sorted(config["plugins"].items()):
+    if values.get("enabled") is True:
+        print(f"plugin add {name}")
+PY
+
+grep '^plugin add ' "$AGENT_CONFIG_CODEX_LOG" | sort >"$TEST_TMP/actual-plugins"
+cmp "$TEST_TMP/expected-plugins" "$TEST_TMP/actual-plugins"
+if grep -q '^plugin add playwright@claude-plugins-official$' "$AGENT_CONFIG_CODEX_LOG"; then
+  printf '%s\n' 'disabled Codex plugin was installed' >&2
+  exit 1
+fi
 
 printf 'codex plugin tests: PASS\n'

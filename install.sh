@@ -43,6 +43,9 @@ ANTHROPIC_ALLOWLIST=(
   pptx
   xlsx
 )
+MATT_ROOT="$ROOT/upstreams/mattpocock-skills"
+MATT_MANIFEST="$MATT_ROOT/.claude-plugin/plugin.json"
+MATT_SKILL_ENTRIES=""
 WINDOWS_MANAGED_PATHS=()
 
 usage() {
@@ -726,20 +729,86 @@ directory_names() {
   done
 }
 
+load_matt_skill_entries() {
+  python3 - "$MATT_ROOT" "$MATT_MANIFEST" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path, PurePosixPath
+
+root = Path(sys.argv[1])
+manifest_path = Path(sys.argv[2])
+if not manifest_path.is_file():
+    raise SystemExit(
+        "Matt Pocock skills submodule is missing; run "
+        "'git submodule update --init --recursive' for pinned revisions or "
+        "'uv run scripts/update_upstreams.py --no-install' to align with main"
+    )
+
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+paths = manifest.get("skills")
+if not isinstance(paths, list) or not paths:
+    raise SystemExit(f"invalid Matt Pocock skill manifest: {manifest_path}")
+
+component = re.compile(r"^[a-z0-9-]+$")
+skills_root = (root / "skills").resolve()
+seen = set()
+for relative in paths:
+    if not isinstance(relative, str) or not relative.startswith("./"):
+        raise SystemExit(f"unsafe Matt Pocock skill path: {relative!r}")
+    parts = PurePosixPath(relative.removeprefix("./")).parts
+    if len(parts) < 3 or parts[0] != "skills" or any(
+        component.fullmatch(part) is None for part in parts
+    ):
+        raise SystemExit(f"unsafe Matt Pocock skill path: {relative!r}")
+    name = parts[-1]
+    if name in seen:
+        raise SystemExit(f"duplicate Matt Pocock skill name: {name}")
+    seen.add(name)
+    skill_dir = root.joinpath(*parts)
+    if not skill_dir.resolve().is_relative_to(skills_root):
+        raise SystemExit(f"unsafe Matt Pocock skill path: {relative!r}")
+    for required in (skill_dir / "SKILL.md", skill_dir / "agents/openai.yaml"):
+        if not required.is_file():
+            raise SystemExit(f"missing Matt Pocock skill file: {required}")
+    print(f"{name}\t{skill_dir}")
+PY
+}
+
+shared_skill_entries() {
+  local source
+  local name
+
+  for source in "$ROOT/shared/skills"/*; do
+    [ -d "$source" ] || continue
+    name="$(basename "$source")"
+    printf '%s\t%s\n' "$name" "$source"
+  done
+  [ -z "$MATT_SKILL_ENTRIES" ] || printf '%s\n' "$MATT_SKILL_ENTRIES"
+}
+
 check_skill_collisions() {
   local harness="$1"
   local specific="$ROOT/harnesses/$harness/skills"
-  local shared
+  local source
   local name
+  local seen_source
+  declare -A seen=()
 
-  for shared in "$ROOT/shared/skills"/*; do
-    [ -d "$shared" ] || continue
-    name="$(basename "$shared")"
+  while IFS=$'\t' read -r name source; do
+    [ -n "$name" ] || continue
+    if [ "${seen[$name]+present}" = present ]; then
+      seen_source="${seen[$name]}"
+      printf 'shared skill collision: %s (%s and %s)\n' \
+        "$name" "$seen_source" "$source" >&2
+      return 1
+    fi
+    seen[$name]="$source"
     if [ -d "$specific/$name" ]; then
       printf 'skill collision for %s: %s\n' "$harness" "$name" >&2
       return 1
     fi
-  done
+  done < <(shared_skill_entries)
 
   if [ "$harness" = claude ]; then
     local external_root="$ROOT/harnesses/claude/upstream/anthropic-skills/skills"
@@ -752,7 +821,7 @@ check_skill_collisions() {
         printf 'missing allowlisted Anthropic skill: %s\n' "$name" >&2
         return 1
       }
-      if [ -d "$ROOT/shared/skills/$name" ] || [ -d "$specific/$name" ]; then
+      if [ "${seen[$name]+present}" = present ] || [ -d "$specific/$name" ]; then
         printf 'skill collision for claude: %s\n' "$name" >&2
         return 1
       fi
@@ -765,15 +834,15 @@ deploy_shared_hub() {
   local source
   local name
 
-  while IFS= read -r name; do
+  while IFS=$'\t' read -r name source; do
     [ -n "$name" ] && names+=("$name")
-  done < <(directory_names "$ROOT/shared/skills")
+  done < <(shared_skill_entries)
 
   prune_skill_links shared "$AGENTS_DIR/skills" "${names[@]}"
-  for name in "${names[@]}"; do
-    source="$ROOT/shared/skills/$name"
+  while IFS=$'\t' read -r name source; do
+    [ -n "$name" ] || continue
     deploy_link shared "$source" "$AGENTS_DIR/skills/$name" "$AGENTS_DIR"
-  done
+  done < <(shared_skill_entries)
 }
 
 deploy_specific_skills() {
@@ -788,9 +857,9 @@ deploy_specific_skills() {
   ensure_directory "$harness" "$target_dir"
 
   if [ "$mirror_shared" = yes ]; then
-    while IFS= read -r name; do
+    while IFS=$'\t' read -r name source; do
       [ -n "$name" ] && names+=("$name")
-    done < <(directory_names "$ROOT/shared/skills")
+    done < <(shared_skill_entries)
   fi
   while IFS= read -r name; do
     [ -n "$name" ] && names+=("$name")
@@ -802,10 +871,10 @@ deploy_specific_skills() {
   prune_skill_links "$harness" "$target_dir" "${names[@]}"
 
   if [ "$mirror_shared" = yes ]; then
-    while IFS= read -r name; do
+    while IFS=$'\t' read -r name source; do
       [ -n "$name" ] || continue
-      deploy_link "$harness" "$ROOT/shared/skills/$name" "$target_dir/$name" "$root"
-    done < <(directory_names "$ROOT/shared/skills")
+      deploy_link "$harness" "$source" "$target_dir/$name" "$root"
+    done < <(shared_skill_entries)
   fi
   while IFS= read -r name; do
     [ -n "$name" ] || continue
@@ -847,20 +916,21 @@ bootstrap_codex_plugins() {
     codex plugin marketplace upgrade ponytail >/dev/null
 
     local plugin
-    for plugin in \
-      clangd-lsp@claude-plugins-official \
-      claude-code-setup@claude-plugins-official \
-      claude-md-management@claude-plugins-official \
-      context7@claude-plugins-official \
-      frontend-design@claude-plugins-official \
-      playwright@claude-plugins-official \
-      pyright-lsp@claude-plugins-official \
-      rust-analyzer-lsp@claude-plugins-official \
-      skill-creator@claude-plugins-official \
-      typescript-lsp@claude-plugins-official \
-      ponytail@ponytail; do
+    while IFS= read -r plugin; do
+      [ -n "$plugin" ] || continue
       codex plugin add "$plugin" >/dev/null
-    done
+    done < <(
+      python3 - "$ROOT/harnesses/codex/config.toml" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as config_file:
+    config = tomllib.load(config_file)
+for name, values in sorted(config.get("plugins", {}).items()):
+    if values.get("enabled") is True:
+        print(name)
+PY
+    )
   )
 }
 
@@ -1051,6 +1121,7 @@ reconcile_windows_manifest() {
 
 deploy_windows_core() {
   local name
+  local source
 
   [ -n "$WINDOWS_CODEX_DIR" ] || return 0
   WINDOWS_MANAGED_PATHS=()
@@ -1061,10 +1132,10 @@ deploy_windows_core() {
   deploy_windows_tree "$ROOT/harnesses/codex/scripts" scripts
   deploy_windows_tree "$ROOT/shared/assets" assets
   deploy_windows_tree "$ROOT/harnesses/codex/agents" agents
-  while IFS= read -r name; do
+  while IFS=$'\t' read -r name source; do
     [ -n "$name" ] || continue
-    deploy_windows_tree "$ROOT/shared/skills/$name" "skills/$name"
-  done < <(directory_names "$ROOT/shared/skills")
+    deploy_windows_tree "$source" "skills/$name"
+  done < <(shared_skill_entries)
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     deploy_windows_tree "$ROOT/harnesses/codex/skills/$name" "skills/$name"
@@ -1215,6 +1286,7 @@ check_harness_runtime() {
   esac
 }
 
+MATT_SKILL_ENTRIES="$(load_matt_skill_entries)"
 mapfile -t HARNESSES < <(selected_harnesses)
 for harness in "${HARNESSES[@]}"; do
   check_skill_collisions "$harness"

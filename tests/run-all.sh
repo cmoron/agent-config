@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tests=(
   test-structure.sh
   test-validate-skills.sh
+  test-python.sh
   test-install.sh
   test-instructions.sh
   test-configs.sh

@@ -1,6 +1,6 @@
 ---
 name: openclaw
-description: Pour travailler sur Nestor/openclaw : VM NAS locale (openclaw-vm), configuration du service, workspace de l'agent, services actifs, déploiement via Ansible.
+description: "Pour travailler sur Nestor/openclaw : VM NAS locale (openclaw-vm), configuration du service, workspace de l'agent, services actifs, déploiement via Ansible."
 ---
 
 # Openclaw — Nestor
@@ -90,18 +90,19 @@ Le mapping concret de ces concepts sur l'instance Nestor est détaillé ci-desso
 
 ## Services actifs
 
-| Service | Outil | État | Notes |
-|---------|-------|------|-------|
-| Gmail | `gog gmail` | ✓ OK | API Google, pas de browser |
-| Google Calendar | `gog calendar` | ✓ OK | API Google, pas de browser |
-| Recherche web | skill `ddg-search` | ✓ OK | Python pur |
-| Météo | skill `weather` | ✓ OK | |
-| Google Keep | Browser headless | ⚠️ Partiel | Chrome doit être lancé manuellement |
+| Service         | Outil                  | État       | Notes                                       |
+| --------------- | ---------------------- | ---------- | ------------------------------------------- |
+| Gmail           | `gog gmail`            | ✓ OK       | API Google, pas de browser                  |
+| Google Calendar | `gog calendar`         | ✓ OK       | API Google, pas de browser                  |
+| Recherche web   | skill `ddg-search`     | ✓ OK       | Python pur                                  |
+| Météo           | skill `weather`        | ✓ OK       |                                             |
+| Google Keep     | Browser headless       | ⚠️ Partiel | Chrome doit être lancé manuellement         |
 | Carrefour Drive | Browser CDP port 19222 | ⚠️ Partiel | Chrome non-headless + Xvfb DISPLAY:1 requis |
 
 ## Chrome sur la VM NAS
 
 Chrome tourne en service systemd permanent sur la VM (Ryzen 5 5600GT, 14 GB RAM, 3 vCPUs) :
+
 - Xvfb + Chrome démarrent au boot, redémarrés automatiquement par systemd si crash
 - Sessions Carrefour / Google Keep persistées dans le profil Chrome (`~/.openclaw/browser/chrome-profile`)
 - Debug port : `9222` — display : `:1`
@@ -120,7 +121,8 @@ Pour les fichiers workspace (SOUL.md, AGENTS.md, etc.), les changements sont lus
 
 **On NE met PAS à jour openclaw via `npm i -g openclaw`.** Le mécanisme canonique est la commande CLI **`openclaw update`** (l'historique de la VM est plein de `openclaw update`).
 
-⚠️ Le `openclaw` du PATH interactif tape un **Node v18** → erreur *"Node v22+ required"*. Invoquer via Node v24 :
+⚠️ Le `openclaw` du PATH interactif tape un **Node v18** → erreur _"Node v22+ required"_. Invoquer via Node v24 :
+
 ```bash
 NODE=~/.nvm/versions/node/v24.13.1/bin/node
 DIST=~/.nvm/versions/node/v24.13.1/lib/node_modules/openclaw
@@ -140,6 +142,7 @@ $NODE $DIST/dist/index.js update --dry-run        # prévisualiser
 La VM **n'a pas de navigateur utilisable** (Chrome sur Xvfb:1 via VNC seulement, pas de copier-coller). Le flow OAuth **par défaut** de codex (`codex login` / `openclaw models auth login --provider openai`) ouvre un serveur de callback sur **`localhost:<port>` de la VM** et y redirige après sign-in → il faut un navigateur qui « revient » sur la VM. Le flow **device** (`--device-code`) est censé éviter ça mais en pratique a posé souci (URL `https://auth.openai.com/codex/device` sans flux de code clair).
 
 **Méthode fiable = forwarder le port de callback via SSH, ouvrir l'URL sur SON navigateur local :**
+
 ```bash
 # 1. Depuis le laptop, ouvrir une session avec le port de callback forwardé
 #    (codex écoute historiquement sur 1455 ; confirmer via le redirect_uri de l'URL affichée)
@@ -153,6 +156,7 @@ openclaw models auth login --provider openai --force        # --force vire le pr
 # 4. La redirection part vers localhost:1455 → le tunnel la renvoie à la VM →
 #    le terminal capte le callback et finit le login tout seul.
 ```
+
 - Si l'URL contient `redirect_uri=http://localhost:XXXX` avec un **autre port**, refaire le `ssh -L XXXX:localhost:XXXX`.
 - Codex 0.139 expose aussi `codex login --with-access-token` / `--with-api-key` (lecture sur stdin) si on récupère un token par un autre canal.
 - Le flow par défaut imprime l'URL **et** écoute le port même sans navigateur sur la VM — donc le tunnel suffit, aucun navigateur VM requis.

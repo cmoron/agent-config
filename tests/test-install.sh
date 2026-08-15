@@ -20,6 +20,12 @@ assert_link_to \
   "$HOME/.agents/skills/api-design" \
   "$TEST_ROOT/shared/skills/api-design"
 assert_link_to \
+  "$HOME/.agents/skills/ask-matt" \
+  "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/ask-matt"
+assert_link_to \
+  "$HOME/.agents/skills/grill-with-docs" \
+  "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/grill-with-docs"
+assert_link_to \
   "$HOME/.codex/skills/wsl-windows-gui" \
   "$TEST_ROOT/harnesses/codex/skills/wsl-windows-gui"
 assert_not_exists "$HOME/.codex/skills/api-design"
@@ -28,6 +34,7 @@ assert_link_to "$HOME/.agents/skills/foreign-broken" /missing/foreign-skill
 assert_not_exists "$HOME/.agents/skills/legacy-removed"
 
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/api-design/SKILL.md"
+assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/ask-matt/SKILL.md"
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/wsl-windows-gui/SKILL.md"
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml"
 [ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/api-design" ]
@@ -51,6 +58,9 @@ assert_link_to \
   "$HOME/.claude/skills/api-design" \
   "$TEST_ROOT/shared/skills/api-design"
 assert_link_to \
+  "$HOME/.claude/skills/ask-matt" \
+  "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/ask-matt"
+assert_link_to \
   "$HOME/.claude/skills/linear" \
   "$TEST_ROOT/harnesses/claude/skills/linear"
 
@@ -61,11 +71,41 @@ assert_link_to \
 
 "$TEST_ROOT/install.sh" --only opencode
 assert_dir "$HOME/.config/opencode/skills"
+assert_link_to \
+  "$HOME/.config/opencode/skills/ask-matt" \
+  "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/ask-matt"
+
+missing_root="$TEST_TMP/missing-upstream-source"
+missing_home="$TEST_TMP/missing-upstream-home"
+mkdir -p "$missing_root" "$missing_home"
+cp "$TEST_ROOT/install.sh" "$missing_root/install.sh"
+chmod +x "$missing_root/install.sh"
+if HOME="$missing_home" AGENT_CONFIG_WINDOWS_CODEX_DIR='' \
+  "$missing_root/install.sh" --dry-run --only codex \
+  >"$TEST_TMP/missing-upstream.out" 2>&1; then
+  printf '%s\n' 'installer accepted a missing Matt Pocock submodule' >&2
+  exit 1
+fi
+grep -Fq "git submodule update --init --recursive" "$TEST_TMP/missing-upstream.out"
+grep -Fq "uv run scripts/update_upstreams.py --no-install" "$TEST_TMP/missing-upstream.out"
+[ -z "$(find "$missing_home" -mindepth 1 -print -quit)" ]
 
 collision_root="$TEST_TMP/collision-source"
 mkdir -p \
   "$collision_root/shared/skills/api-design" \
-  "$collision_root/harnesses/codex/skills/api-design"
+  "$collision_root/harnesses/codex/skills/api-design" \
+  "$collision_root/upstreams/mattpocock-skills/.claude-plugin" \
+  "$collision_root/upstreams/mattpocock-skills/skills/future-category/ask-matt/agents"
+cat >"$collision_root/upstreams/mattpocock-skills/.claude-plugin/plugin.json" <<'EOF'
+{"skills":["./skills/future-category/ask-matt"]}
+EOF
+cat >"$collision_root/upstreams/mattpocock-skills/skills/future-category/ask-matt/SKILL.md" <<'EOF'
+---
+name: ask-matt
+description: Test fixture.
+---
+EOF
+: >"$collision_root/upstreams/mattpocock-skills/skills/future-category/ask-matt/agents/openai.yaml"
 cp "$TEST_ROOT/install.sh" "$collision_root/install.sh"
 chmod +x "$collision_root/install.sh"
 collision_home="$TEST_TMP/collision-home"

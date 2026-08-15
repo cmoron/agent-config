@@ -1,6 +1,6 @@
 ---
 name: autoship
-description: Produit une petite feature/fix en autonomie totale — map, plan, build (TDD + review indépendante), spec-gate, vérif comportementale, doc, ship. Jamais bloquant : se termine toujours soit livré, soit en PR prête à reviser (atterrissage sûr si zone sensible DB/auth/CI-CD). Invoqué par /autoship. À utiliser quand le risque de régression est jugé faible par l'utilisateur.
+description: "Produit une petite feature/fix en autonomie totale — map, plan, build (TDD + review indépendante), spec-gate, vérif comportementale, doc, ship. Jamais bloquant : se termine toujours soit livré, soit en PR prête à reviser (atterrissage sûr si zone sensible DB/auth/CI-CD). Invoqué par /autoship. À utiliser quand le risque de régression est jugé faible par l'utilisateur."
 ---
 
 # Autoship
@@ -65,7 +65,7 @@ appliquer les corrections → re-review, **jusqu'à clean ou borne (3)**. Finir 
 Si après les retries le build/les tests ne passent pas → on ne peut pas atteindre une PR
 verte : commit du WIP sur la branche de travail + rapport (toujours sans question).
 
-## Phase 3bis — Spec-gate (a-t-on construit la *bonne* chose ?)
+## Phase 3bis — Spec-gate (a-t-on construit la _bonne_ chose ?)
 
 Brique réutilisable. Invoquer le skill `review` sur l'**axe Spec**, en lui donnant la
 description de tâche (`$ARGUMENTS`) comme critères d'acceptation, sur le diff depuis le
@@ -76,7 +76,7 @@ par un agent **frais** (pas celui qui a codé).
 - Écart → rework **borné (3)** puis ré-évaluation. Toujours KO → atterrissage **PR-prête**
   (cf. Phase 5), raison « spec-gate : <écart> ». Pas de question.
 
-## Phase 3ter — Vérif comportementale (ça marche *vraiment* ?)
+## Phase 3ter — Vérif comportementale (ça marche _vraiment_ ?)
 
 Brique réutilisable. « Tests verts » ≠ « la feature marche ». Invoquer le skill `verify`
 (lance l'app / appelle l'endpoint / `webapp-testing` Playwright si UI) pour observer le
@@ -95,6 +95,7 @@ sur-documentation. Si rien ne le justifie, ne rien écrire.
 
 Suivre `references/ship.md`. La chorégraphie choisit l'**atterrissage** selon les zones
 touchées par le diff :
+
 - **Auto** (rien de sensible, aucun gate amont dégradé) : commit → PR → CI → merge squash
   → staging → prod → auto-revert si casse.
 - **PR-prête** (zone dimensionnante touchée — DB / auth-secrets / CI-CD-infra — ou gate
@@ -124,6 +125,7 @@ laissé en l'état **que si le revert lui-même échoue** → stop + escalade.
 ## Rapport final (systématique)
 
 À la fin du run (succès comme échec), produire un résumé structuré :
+
 - **Tâche** : la description fournie
 - **Statut** : livré / **PR prête à reviser** (zone sensible ou gate non franchi) / WIP (build KO) / bloqué post-merge
 - **Fait** : phases franchies, branche, PR (URL), commit(s) sur main

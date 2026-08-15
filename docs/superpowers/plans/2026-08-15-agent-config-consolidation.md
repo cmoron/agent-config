@@ -1,5 +1,10 @@
 # Agent Config Consolidation Implementation Plan
 
+> **Statut :** plan initial execute, conserve comme archive de conception. Les
+> comptages et choix ci-dessous decrivent la baseline avant la promotion des
+> skills Matt Pocock. `README.md` et `docs/deployment-inventory.md` portent la
+> reference operationnelle actuelle.
+
 > **Execution rule:** implement inline, in reviewable batches. The complete
 > migration is estimated at 6-8 hours, so subagent-driven development is not
 > the default. Each batch below has its own verification gate and commit.
@@ -52,11 +57,11 @@ Le nouveau depot a ete initialise vide. Les trois anciens depots sont des
 sources d'import independantes; aucun de leurs historiques ni changements non
 commites n'est embarque automatiquement :
 
-| Depot source | Commit de reference | Changements locaux exclus de l'import initial |
-| --- | --- | --- |
-| `/home/cyril/src/codex-config` | `a6ab99b2748f85caba946cf98953121967a52a1f` | `config.toml` |
+| Depot source                    | Commit de reference                        | Changements locaux exclus de l'import initial                                              |
+| ------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `/home/cyril/src/codex-config`  | `a6ab99b2748f85caba946cf98953121967a52a1f` | `config.toml`                                                                              |
 | `/home/cyril/src/claude-config` | `7ad1a9f40fc747114688bf66383b1a50c549022f` | `RTK.md`, `settings.json`, `skills/lotusim-developer/SKILL.md`, `skills/openclaw/SKILL.md` |
-| `/home/cyril/src/kimi-config` | `852bc1a9b6ef81b9ea734732dee842fa257672b4` | `README.md`, `mcp.json` |
+| `/home/cyril/src/kimi-config`   | `852bc1a9b6ef81b9ea734732dee842fa257672b4` | `README.md`, `mcp.json`                                                                    |
 
 Ces changements doivent etre classes, adoptes ou rejetes explicitement avant
 leur import. Le depot `agent-config` possede son propre historique, commencant
@@ -175,13 +180,13 @@ hooks restent propres aux harnesses.
 
 ## Matrice de deploiement
 
-| Surface | Claude | Codex | Kimi | OpenCode |
-| --- | --- | --- | --- | --- |
-| Instructions rendues | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` | `~/.kimi-code/AGENTS.md` | `~/.config/opencode/AGENTS.md` |
-| Skills partages | liens dans `~/.claude/skills` | `~/.agents/skills` natif | `~/.agents/skills` natif | liens dans `~/.config/opencode/skills` |
-| Skills specifiques | `~/.claude/skills` | `~/.codex/skills` | `~/.kimi-code/skills` | `~/.config/opencode/skills` |
-| Config principale | copie/fusion native | copie/fusion native | copie/fusion native | copie/fusion native |
-| Windows Codex | sans objet | copies dans `/mnt/c/Users/cyril/.codex` | sans objet | sans objet |
+| Surface              | Claude                        | Codex                                   | Kimi                     | OpenCode                               |
+| -------------------- | ----------------------------- | --------------------------------------- | ------------------------ | -------------------------------------- |
+| Instructions rendues | `~/.claude/CLAUDE.md`         | `~/.codex/AGENTS.md`                    | `~/.kimi-code/AGENTS.md` | `~/.config/opencode/AGENTS.md`         |
+| Skills partages      | liens dans `~/.claude/skills` | `~/.agents/skills` natif                | `~/.agents/skills` natif | liens dans `~/.config/opencode/skills` |
+| Skills specifiques   | `~/.claude/skills`            | `~/.codex/skills`                       | `~/.kimi-code/skills`    | `~/.config/opencode/skills`            |
+| Config principale    | copie/fusion native           | copie/fusion native                     | copie/fusion native      | copie/fusion native                    |
+| Windows Codex        | sans objet                    | copies dans `/mnt/c/Users/cyril/.codex` | sans objet               | sans objet                             |
 
 Le hub `~/.agents` est utilise pour les skills Codex et Kimi seulement.
 OpenCode 1.3.13 charge aussi les skills Claude par defaut; son environnement
@@ -744,11 +749,11 @@ payload/reponse par harness.
 
 ## Estimation et checkpoints
 
-| Lot | Contenu | Estimation | Gate de revue |
-| --- | --- | ---: | --- |
-| A | provenance, squelette, huit skills, instructions | 2-3 h | aucun deploiement reel |
-| B | adaptateurs, OpenCode, Windows, controles | 3-4 h | homes temporaires conformes |
-| C | bascule reelle et observation | 1 h active + observation | validation humaine avant deploiement et archivage |
+| Lot | Contenu                                          |               Estimation | Gate de revue                                     |
+| --- | ------------------------------------------------ | -----------------------: | ------------------------------------------------- |
+| A   | provenance, squelette, huit skills, instructions |                    2-3 h | aucun deploiement reel                            |
+| B   | adaptateurs, OpenCode, Windows, controles        |                    3-4 h | homes temporaires conformes                       |
+| C   | bascule reelle et observation                    | 1 h active + observation | validation humaine avant deploiement et archivage |
 
 L'execution reste inline par defaut. Les Tasks 3, 4 et 5 ne doivent pas etre
 parallellisees car elles modifient toutes `install.sh`; le plan est donc
