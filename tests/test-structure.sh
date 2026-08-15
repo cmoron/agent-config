@@ -23,6 +23,7 @@ required_paths=(
   shared/skills/stack-ts/SKILL.md
   harnesses/claude/instructions.overlay.md
   harnesses/claude/settings.json
+  harnesses/claude/skills/agent-config/SKILL.md
   harnesses/claude/config/ccstatusline/settings.json
   harnesses/claude/commands/autoship.md
   harnesses/claude/commands/commit.md
@@ -30,6 +31,7 @@ required_paths=(
   harnesses/codex/config.toml
   harnesses/codex/hooks.json
   harnesses/codex/rules/default.rules
+  harnesses/codex/skills/agent-config/SKILL.md
   harnesses/kimi/instructions.overlay.md
   harnesses/kimi/config.toml
   harnesses/kimi/mcp.json
@@ -74,5 +76,12 @@ actual_asset_hash="$(sha256sum "$ROOT/shared/assets/warcraft-3-paysan-travail-te
   printf 'shared notification asset hash mismatch\n' >&2
   exit 1
 }
+
+if rg -n \
+  'src/(claude-config|codex-config|kimi-config)|name: (claude-config|codex-config)' \
+  "$ROOT/harnesses" "$ROOT/shared"; then
+  printf '%s\n' 'legacy repository identity remains in deployable content' >&2
+  exit 1
+fi
 
 printf 'structure tests: PASS\n'

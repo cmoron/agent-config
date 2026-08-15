@@ -29,6 +29,17 @@ LEGACY_ROOTS=(
   /home/cyril/src/codex-config
   /home/cyril/src/kimi-config
 )
+ANTHROPIC_ALLOWLIST=(
+  claude-api
+  mcp-builder
+  webapp-testing
+  doc-coauthoring
+  docx
+  pdf
+  pptx
+  xlsx
+)
+WINDOWS_MANAGED_PATHS=()
 
 usage() {
   cat <<'EOF'
@@ -138,6 +149,65 @@ report_drift() {
   CHECK_FAILED=1
 }
 
+json_is_valid() {
+  jq empty "$1" >/dev/null 2>&1
+}
+
+toml_is_valid() {
+  python3 -c \
+    'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' \
+    "$1" >/dev/null 2>&1
+}
+
+validate_harness_sources() {
+  local harness="$1"
+  local source
+
+  case "$harness" in
+    claude)
+      source="$ROOT/harnesses/claude/settings.json"
+      json_is_valid "$source" || {
+        printf 'invalid source JSON: %s\n' "$source" >&2
+        return 1
+      }
+      ;;
+    codex)
+      source="$ROOT/harnesses/codex/config.toml"
+      toml_is_valid "$source" || {
+        printf 'invalid source TOML: %s\n' "$source" >&2
+        return 1
+      }
+      source="$ROOT/harnesses/codex/hooks.json"
+      json_is_valid "$source" || {
+        printf 'invalid source JSON: %s\n' "$source" >&2
+        return 1
+      }
+      ;;
+    kimi)
+      for source in \
+        "$ROOT/harnesses/kimi/config.toml" \
+        "$ROOT/harnesses/kimi/tui.toml"; do
+        toml_is_valid "$source" || {
+          printf 'invalid source TOML: %s\n' "$source" >&2
+          return 1
+        }
+      done
+      source="$ROOT/harnesses/kimi/mcp.json"
+      json_is_valid "$source" || {
+        printf 'invalid source JSON: %s\n' "$source" >&2
+        return 1
+      }
+      ;;
+    opencode)
+      source="$ROOT/harnesses/opencode/opencode.json"
+      json_is_valid "$source" || {
+        printf 'invalid source JSON: %s\n' "$source" >&2
+        return 1
+      }
+      ;;
+  esac
+}
+
 ensure_parent() {
   local target="$1"
 
@@ -214,14 +284,19 @@ deploy_link() {
   esac
 }
 
-copy_tree() {
+deploy_copy_file() {
   local harness="$1"
   local source="$2"
   local target="$3"
   local root="$4"
+  local required_mode="${5:-644}"
+  local current_mode=""
 
-  if [ -d "$target" ] && [ ! -L "$target" ] && diff -qr "$source" "$target" >/dev/null; then
-    return 0
+  if [ -f "$target" ] && [ ! -L "$target" ]; then
+    current_mode="$(stat -c '%a' "$target")"
+    if cmp -s "$source" "$target" && [ "$current_mode" = "$required_mode" ]; then
+      return 0
+    fi
   fi
 
   case "$MODE" in
@@ -229,13 +304,194 @@ copy_tree() {
       report_drift "$harness" "$target" content
       ;;
     dry-run)
-      printf 'WOULD COPY_TREE %s -> %s\n' "$source" "$target"
+      printf 'WOULD COPY %s -> %s\n' "$source" "$target"
       ;;
     apply)
       ensure_parent "$target"
       backup_existing "$target" "$root"
-      cp -a "$source" "$target"
-      printf 'COPY_TREE %s -> %s\n' "$source" "$target"
+      cp "$source" "$target"
+      chmod "$required_mode" "$target"
+      printf 'COPY %s -> %s\n' "$source" "$target"
+      ;;
+  esac
+}
+
+deploy_rendered_file() {
+  local harness="$1"
+  local rendered="$2"
+  local target="$3"
+  local root="$4"
+  local required_mode="${5:-644}"
+  local current_mode=""
+
+  if [ -f "$target" ] && [ ! -L "$target" ]; then
+    current_mode="$(stat -c '%a' "$target")"
+    if cmp -s "$rendered" "$target" && [ "$current_mode" = "$required_mode" ]; then
+      rm -f "$rendered"
+      return 0
+    fi
+  fi
+
+  case "$MODE" in
+    check)
+      report_drift "$harness" "$target" content
+      rm -f "$rendered"
+      ;;
+    dry-run)
+      printf 'WOULD WRITE %s\n' "$target"
+      rm -f "$rendered"
+      ;;
+    apply)
+      ensure_parent "$target"
+      backup_existing "$target" "$root"
+      mv "$rendered" "$target"
+      chmod "$required_mode" "$target"
+      printf 'WRITE %s\n' "$target"
+      ;;
+  esac
+}
+
+deploy_seed_file() {
+  local harness="$1"
+  local source="$2"
+  local target="$3"
+  local root="$4"
+  local required_mode="${5:-644}"
+
+  if [ -f "$target" ] && [ ! -L "$target" ]; then
+    return 0
+  fi
+  case "$MODE" in
+    check) report_drift "$harness" "$target" missing ;;
+    dry-run) printf 'WOULD SEED %s -> %s\n' "$source" "$target" ;;
+    apply)
+      ensure_parent "$target"
+      backup_existing "$target" "$root"
+      cp "$source" "$target"
+      chmod "$required_mode" "$target"
+      printf 'SEED %s -> %s\n' "$source" "$target"
+      ;;
+  esac
+}
+
+render_claude_settings() {
+  local output="$1"
+  local source="$ROOT/harnesses/claude/settings.json"
+  local target="$CLAUDE_DIR/settings.json"
+
+  command -v jq >/dev/null 2>&1 || {
+    printf '%s\n' 'jq is required to merge Claude settings' >&2
+    return 1
+  }
+  if [ -f "$target" ]; then
+    jq -S -s '
+      .[0] as $runtime
+      | .[1] as $source
+      | ($runtime * $source)
+      | .permissions = $source.permissions
+      | .model = $source.model
+      | .hooks = $source.hooks
+      | .statusLine = $source.statusLine
+      | .enabledPlugins = $source.enabledPlugins
+      | .extraKnownMarketplaces = $source.extraKnownMarketplaces
+    ' "$target" "$source" >"$output"
+  else
+    jq -S . "$source" >"$output"
+  fi
+}
+
+render_codex_config() {
+  local output="$1"
+  local source="$ROOT/harnesses/codex/config.toml"
+  local target="$CODEX_DIR/config.toml"
+  local hook_state
+
+  cp "$source" "$output"
+  [ -f "$target" ] || return 0
+
+  hook_state="$(mktemp)"
+  awk '
+    /^\[hooks\.state(\]|\.")/ { keep = 1 }
+    /^\[/ && $0 !~ /^\[hooks\.state(\]|\.")/ { keep = 0 }
+    keep
+  ' "$target" >"$hook_state"
+  if [ -s "$hook_state" ]; then
+    printf '\n' >>"$output"
+    cat "$hook_state" >>"$output"
+  fi
+  rm -f "$hook_state"
+}
+
+render_kimi_config() {
+  local output="$1"
+  local source="$ROOT/harnesses/kimi/config.toml"
+  local target="$KIMI_DIR/config.toml"
+
+  if [ -f "$target" ]; then
+    awk -f "$ROOT/scripts/merge-kimi-config.awk" "$source" "$target" >"$output"
+  else
+    awk -f "$ROOT/scripts/merge-kimi-config.awk" "$source" "$source" >"$output"
+  fi
+}
+
+deploy_named_files() {
+  local harness="$1"
+  local source_dir="$2"
+  local target_dir="$3"
+  local root="$4"
+  local names=()
+  local source
+  local name
+
+  ensure_directory "$harness" "$target_dir"
+  [ -d "$source_dir" ] || return 0
+  for source in "$source_dir"/*; do
+    [ -f "$source" ] || continue
+    name="$(basename "$source")"
+    names+=("$name")
+  done
+  prune_skill_links "$harness" "$target_dir" "${names[@]}"
+  for name in "${names[@]}"; do
+    deploy_link "$harness" "$source_dir/$name" "$target_dir/$name" "$root"
+  done
+}
+
+deploy_harness_config() {
+  local harness="$1"
+  local rendered
+
+  case "$harness" in
+    claude)
+      rendered="$(mktemp)"
+      render_claude_settings "$rendered"
+      deploy_rendered_file claude "$rendered" "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR" 600
+      deploy_link claude "$ROOT/harnesses/claude/scripts" "$CLAUDE_DIR/scripts" "$CLAUDE_DIR"
+      deploy_link claude "$ROOT/shared/assets" "$CLAUDE_DIR/assets" "$CLAUDE_DIR"
+      deploy_named_files claude "$ROOT/harnesses/claude/commands" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"
+      deploy_named_files claude "$ROOT/harnesses/claude/agents" "$CLAUDE_DIR/agents" "$CLAUDE_DIR"
+      deploy_link claude "$ROOT/harnesses/claude/config/ccstatusline" "$HOME/.config/ccstatusline" "$HOME/.config"
+      ;;
+    codex)
+      rendered="$(mktemp)"
+      render_codex_config "$rendered"
+      deploy_rendered_file codex "$rendered" "$CODEX_DIR/config.toml" "$CODEX_DIR" 600
+      deploy_copy_file codex "$ROOT/harnesses/codex/hooks.json" "$CODEX_DIR/hooks.json" "$CODEX_DIR" 644
+      deploy_copy_file codex "$ROOT/harnesses/codex/rules/default.rules" "$CODEX_DIR/rules/default.rules" "$CODEX_DIR" 644
+      deploy_link codex "$ROOT/harnesses/codex/scripts" "$CODEX_DIR/scripts" "$CODEX_DIR"
+      deploy_link codex "$ROOT/shared/assets" "$CODEX_DIR/assets" "$CODEX_DIR"
+      deploy_link codex "$ROOT/harnesses/codex/agents" "$CODEX_DIR/agents" "$CODEX_DIR"
+      ;;
+    kimi)
+      rendered="$(mktemp)"
+      render_kimi_config "$rendered"
+      deploy_rendered_file kimi "$rendered" "$KIMI_DIR/config.toml" "$KIMI_DIR" 600
+      deploy_copy_file kimi "$ROOT/harnesses/kimi/tui.toml" "$KIMI_DIR/tui.toml" "$KIMI_DIR" 644
+      deploy_copy_file kimi "$ROOT/harnesses/kimi/mcp.json" "$KIMI_DIR/mcp.json" "$KIMI_DIR" 600
+      deploy_link kimi "$ROOT/harnesses/kimi/scripts" "$KIMI_DIR/scripts" "$KIMI_DIR"
+      deploy_link kimi "$ROOT/shared/assets" "$KIMI_DIR/assets" "$KIMI_DIR"
+      ;;
+    opencode)
+      deploy_copy_file opencode "$ROOT/harnesses/opencode/opencode.json" "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR" 600
       ;;
   esac
 }
@@ -348,6 +604,24 @@ check_skill_collisions() {
       return 1
     fi
   done
+
+  if [ "$harness" = claude ]; then
+    local external_root="$ROOT/harnesses/claude/upstream/anthropic-skills/skills"
+    [ -d "$external_root" ] || {
+      printf '%s\n' 'Claude Anthropic skills submodule is missing; run git submodule update --init' >&2
+      return 1
+    }
+    for name in "${ANTHROPIC_ALLOWLIST[@]}"; do
+      [ -d "$external_root/$name" ] || {
+        printf 'missing allowlisted Anthropic skill: %s\n' "$name" >&2
+        return 1
+      }
+      if [ -d "$ROOT/shared/skills/$name" ] || [ -d "$specific/$name" ]; then
+        printf 'skill collision for claude: %s\n' "$name" >&2
+        return 1
+      fi
+    done
+  fi
 }
 
 deploy_shared_hub() {
@@ -386,6 +660,9 @@ deploy_specific_skills() {
   while IFS= read -r name; do
     [ -n "$name" ] && names+=("$name")
   done < <(directory_names "$ROOT/harnesses/$harness/skills")
+  if [ "$harness" = claude ]; then
+    names+=("${ANTHROPIC_ALLOWLIST[@]}")
+  fi
 
   prune_skill_links "$harness" "$target_dir" "${names[@]}"
 
@@ -400,27 +677,255 @@ deploy_specific_skills() {
     source="$ROOT/harnesses/$harness/skills/$name"
     deploy_link "$harness" "$source" "$target_dir/$name" "$root"
   done < <(directory_names "$ROOT/harnesses/$harness/skills")
+  if [ "$harness" = claude ]; then
+    for name in "${ANTHROPIC_ALLOWLIST[@]}"; do
+      source="$ROOT/harnesses/claude/upstream/anthropic-skills/skills/$name"
+      deploy_link claude "$source" "$target_dir/$name" "$root"
+    done
+  fi
+}
+
+bootstrap_claude_plugins() {
+  [ "$MODE" = apply ] || return 0
+  [ "${AGENT_CONFIG_SKIP_PLUGINS:-0}" != 1 ] || return 0
+  command -v claude >/dev/null 2>&1 || return 0
+  "$ROOT/harnesses/claude/scripts/bootstrap-plugins.sh"
+}
+
+bootstrap_codex_plugins() {
+  [ "$MODE" = apply ] || return 0
+  [ "${AGENT_CONFIG_SKIP_PLUGINS:-0}" != 1 ] || return 0
+  command -v codex >/dev/null 2>&1 || return 0
+
+  (
+    local bootstrap_home
+    bootstrap_home="$(mktemp -d)"
+    trap 'rm -rf "$bootstrap_home"' EXIT
+
+    mkdir -p "$CODEX_DIR/.tmp" "$CODEX_DIR/plugins"
+    ln -s "$CODEX_DIR/.tmp" "$bootstrap_home/.tmp"
+    ln -s "$CODEX_DIR/plugins" "$bootstrap_home/plugins"
+    cp "$ROOT/harnesses/codex/config.toml" "$bootstrap_home/config.toml"
+    export CODEX_HOME="$bootstrap_home"
+
+    codex plugin marketplace upgrade claude-plugins-official >/dev/null
+    codex plugin marketplace upgrade ponytail >/dev/null
+
+    local plugin
+    for plugin in \
+      clangd-lsp@claude-plugins-official \
+      claude-code-setup@claude-plugins-official \
+      claude-md-management@claude-plugins-official \
+      context7@claude-plugins-official \
+      frontend-design@claude-plugins-official \
+      playwright@claude-plugins-official \
+      pyright-lsp@claude-plugins-official \
+      rust-analyzer-lsp@claude-plugins-official \
+      skill-creator@claude-plugins-official \
+      typescript-lsp@claude-plugins-official \
+      ponytail@ponytail; do
+      codex plugin add "$plugin" >/dev/null
+    done
+  )
+}
+
+validate_windows_relative_path() {
+  local relative="$1"
+
+  case "$relative" in
+    ""|/*|..|../*|*/..|*/../*)
+      printf 'invalid Windows managed path: %s\n' "$relative" >&2
+      return 1
+      ;;
+  esac
+}
+
+windows_path_was_managed() {
+  local relative="$1"
+  local marker
+
+  for marker in \
+    "$WINDOWS_CODEX_DIR/.agent-config-managed" \
+    "$WINDOWS_CODEX_DIR/.codex-config-managed"; do
+    grep -Fxq "$relative" "$marker" 2>/dev/null && return 0
+  done
+  return 1
+}
+
+windows_path_is_desired() {
+  local relative="$1"
+  local desired
+
+  for desired in "${WINDOWS_MANAGED_PATHS[@]}"; do
+    [ "$desired" = "$relative" ] && return 0
+  done
+  return 1
+}
+
+remove_windows_managed_path() {
+  local relative="$1"
+  local target
+
+  validate_windows_relative_path "$relative"
+  target="$WINDOWS_CODEX_DIR/$relative"
+  if [ -d "$target" ] && [ ! -L "$target" ]; then
+    rm -rf -- "$target"
+  else
+    rm -f -- "$target"
+  fi
+}
+
+prepare_windows_replacement() {
+  local relative="$1"
+  local target="$WINDOWS_CODEX_DIR/$relative"
+
+  [ -e "$target" ] || [ -L "$target" ] || return 0
+  if windows_path_was_managed "$relative"; then
+    remove_windows_managed_path "$relative"
+  else
+    backup_existing "$target" "$WINDOWS_CODEX_DIR"
+  fi
+}
+
+deploy_windows_file() {
+  local source="$1"
+  local relative="$2"
+  local required_mode="${3:-644}"
+  local target="$WINDOWS_CODEX_DIR/$relative"
+  local current_mode=""
+
+  validate_windows_relative_path "$relative"
+  WINDOWS_MANAGED_PATHS+=("$relative")
+  if [ -f "$target" ] && [ ! -L "$target" ]; then
+    current_mode="$(stat -c '%a' "$target")"
+    if cmp -s "$source" "$target" && [ "$current_mode" = "$required_mode" ]; then
+      return 0
+    fi
+  fi
+
+  case "$MODE" in
+    check) report_drift windows "$target" content ;;
+    dry-run) printf 'WOULD COPY %s -> %s\n' "$source" "$target" ;;
+    apply)
+      ensure_parent "$target"
+      prepare_windows_replacement "$relative"
+      cp "$source" "$target"
+      chmod "$required_mode" "$target"
+      printf 'COPY %s -> %s\n' "$source" "$target"
+      ;;
+  esac
+}
+
+deploy_windows_tree() {
+  local source="$1"
+  local relative="$2"
+  local target="$WINDOWS_CODEX_DIR/$relative"
+
+  validate_windows_relative_path "$relative"
+  WINDOWS_MANAGED_PATHS+=("$relative")
+  if [ -d "$target" ] && [ ! -L "$target" ] \
+    && diff -qr "$source" "$target" >/dev/null \
+    && cmp -s \
+      <(cd "$source" && find . -printf '%P %y %m\n' | sort) \
+      <(cd "$target" && find . -printf '%P %y %m\n' | sort); then
+    return 0
+  fi
+
+  case "$MODE" in
+    check) report_drift windows "$target" content ;;
+    dry-run) printf 'WOULD COPY_TREE %s -> %s\n' "$source" "$target" ;;
+    apply)
+      ensure_parent "$target"
+      prepare_windows_replacement "$relative"
+      cp -a "$source" "$target"
+      printf 'COPY_TREE %s -> %s\n' "$source" "$target"
+      ;;
+  esac
+}
+
+reconcile_windows_manifest() {
+  local marker="$WINDOWS_CODEX_DIR/.agent-config-managed"
+  local legacy_marker="$WINDOWS_CODEX_DIR/.codex-config-managed"
+  local desired_file
+  local previous_marker
+  local relative
+
+  for previous_marker in "$marker" "$legacy_marker"; do
+    [ -f "$previous_marker" ] || continue
+    while IFS= read -r relative; do
+      [ -n "$relative" ] || continue
+      validate_windows_relative_path "$relative"
+      windows_path_is_desired "$relative" && continue
+      [ -e "$WINDOWS_CODEX_DIR/$relative" ] || [ -L "$WINDOWS_CODEX_DIR/$relative" ] || continue
+      case "$MODE" in
+        check) report_drift windows "$WINDOWS_CODEX_DIR/$relative" stale ;;
+        dry-run) printf 'WOULD PRUNE %s\n' "$WINDOWS_CODEX_DIR/$relative" ;;
+        apply)
+          remove_windows_managed_path "$relative"
+          printf 'PRUNE %s\n' "$WINDOWS_CODEX_DIR/$relative"
+          ;;
+      esac
+    done <"$previous_marker"
+  done
+
+  desired_file="$(mktemp)"
+  printf '%s\n' "${WINDOWS_MANAGED_PATHS[@]}" | sort -u >"$desired_file"
+  case "$MODE" in
+    check)
+      if [ ! -f "$marker" ] || ! cmp -s "$desired_file" "$marker"; then
+        report_drift windows "$marker" manifest
+      fi
+      if [ -e "$legacy_marker" ]; then
+        report_drift windows "$legacy_marker" legacy-manifest
+      fi
+      ;;
+    dry-run)
+      if [ ! -f "$marker" ] || ! cmp -s "$desired_file" "$marker" || [ -e "$legacy_marker" ]; then
+        printf 'WOULD WRITE %s\n' "$marker"
+      fi
+      ;;
+    apply)
+      if [ ! -f "$marker" ] || ! cmp -s "$desired_file" "$marker"; then
+        ensure_parent "$marker"
+        mv "$desired_file" "$marker"
+        desired_file=""
+        chmod 644 "$marker"
+        printf 'WRITE %s\n' "$marker"
+      fi
+      rm -f "$legacy_marker"
+      ;;
+  esac
+  [ -z "$desired_file" ] || rm -f "$desired_file"
 }
 
 deploy_windows_core() {
   local name
 
   [ -n "$WINDOWS_CODEX_DIR" ] || return 0
+  WINDOWS_MANAGED_PATHS=()
   deploy_instructions_windows
+  deploy_seed_file windows "$ROOT/harnesses/codex/config.toml" "$WINDOWS_CODEX_DIR/config.toml" "$WINDOWS_CODEX_DIR" 600
+  deploy_windows_file "$ROOT/harnesses/codex/hooks.json" hooks.json 644
+  deploy_windows_file "$ROOT/harnesses/codex/rules/default.rules" rules/default.rules 644
+  deploy_windows_tree "$ROOT/harnesses/codex/scripts" scripts
+  deploy_windows_tree "$ROOT/shared/assets" assets
+  deploy_windows_tree "$ROOT/harnesses/codex/agents" agents
   while IFS= read -r name; do
     [ -n "$name" ] || continue
-    copy_tree windows "$ROOT/shared/skills/$name" "$WINDOWS_CODEX_DIR/skills/$name" "$WINDOWS_CODEX_DIR"
+    deploy_windows_tree "$ROOT/shared/skills/$name" "skills/$name"
   done < <(directory_names "$ROOT/shared/skills")
   while IFS= read -r name; do
     [ -n "$name" ] || continue
-    copy_tree windows "$ROOT/harnesses/codex/skills/$name" "$WINDOWS_CODEX_DIR/skills/$name" "$WINDOWS_CODEX_DIR"
+    deploy_windows_tree "$ROOT/harnesses/codex/skills/$name" "skills/$name"
   done < <(directory_names "$ROOT/harnesses/codex/skills")
+  reconcile_windows_manifest
 }
 
 deploy_instructions_windows() {
   local rendered
   local target="$WINDOWS_CODEX_DIR/AGENTS.md"
 
+  WINDOWS_MANAGED_PATHS+=(AGENTS.md)
   rendered="$(mktemp)"
   render_instructions_to codex "$rendered"
   if [ -f "$target" ] && [ ! -L "$target" ] && cmp -s "$rendered" "$target"; then
@@ -449,15 +954,18 @@ deploy_instructions_windows() {
 deploy_harness_core() {
   local harness="$1"
 
+  deploy_harness_config "$harness"
   deploy_instructions "$harness"
   case "$harness" in
     claude)
       deploy_specific_skills claude "$CLAUDE_DIR/skills" "$CLAUDE_DIR" yes
+      bootstrap_claude_plugins
       ;;
     codex)
       deploy_shared_hub codex
       deploy_specific_skills codex "$CODEX_DIR/skills" "$CODEX_DIR" no
       deploy_windows_core
+      bootstrap_codex_plugins
       ;;
     kimi)
       deploy_shared_hub kimi
@@ -470,9 +978,97 @@ deploy_harness_core() {
   esac
 }
 
+check_runtime_file() {
+  local harness="$1"
+  local target="$2"
+  local format="$3"
+
+  [ -f "$target" ] || return 0
+  case "$format" in
+    json)
+      json_is_valid "$target" || report_drift "$harness" "$target" invalid-json
+      ;;
+    toml)
+      toml_is_valid "$target" || report_drift "$harness" "$target" invalid-toml
+      ;;
+  esac
+}
+
+check_executable_scripts() {
+  local harness="$1"
+  local directory="$2"
+  local script
+
+  [ -e "$directory" ] || [ -L "$directory" ] || return 0
+  while IFS= read -r script; do
+    [ -n "$script" ] || continue
+    report_drift "$harness" "$script" non-executable
+  done < <(find -L "$directory" -type f -name '*.sh' ! -perm -u+x -print 2>/dev/null)
+}
+
+check_legacy_references() {
+  local harness="$1"
+  shift
+  local file
+
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    report_drift "$harness" "$file" legacy-reference
+  done < <(
+    grep -RIlE \
+      '(/home/[^/]+|\$HOME)/src/(claude-config|codex-config|kimi-config)' \
+      -- "$@" 2>/dev/null | sort -u || true
+  )
+}
+
+check_harness_runtime() {
+  local harness="$1"
+
+  case "$harness" in
+    claude)
+      check_runtime_file claude "$CLAUDE_DIR/settings.json" json
+      check_executable_scripts claude "$CLAUDE_DIR/scripts"
+      check_legacy_references claude \
+        "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/CLAUDE.md" "$CLAUDE_DIR/scripts"
+      ;;
+    codex)
+      check_runtime_file codex "$CODEX_DIR/config.toml" toml
+      check_runtime_file codex "$CODEX_DIR/hooks.json" json
+      check_executable_scripts codex "$CODEX_DIR/scripts"
+      check_legacy_references codex \
+        "$CODEX_DIR/config.toml" "$CODEX_DIR/hooks.json" "$CODEX_DIR/AGENTS.md" "$CODEX_DIR/scripts"
+      if [ -n "$WINDOWS_CODEX_DIR" ]; then
+        check_runtime_file windows "$WINDOWS_CODEX_DIR/config.toml" toml
+        check_runtime_file windows "$WINDOWS_CODEX_DIR/hooks.json" json
+        check_executable_scripts windows "$WINDOWS_CODEX_DIR/scripts"
+        check_legacy_references windows \
+          "$WINDOWS_CODEX_DIR/AGENTS.md" \
+          "$WINDOWS_CODEX_DIR/hooks.json" \
+          "$WINDOWS_CODEX_DIR/scripts" \
+          "$WINDOWS_CODEX_DIR/agents" \
+          "$WINDOWS_CODEX_DIR/skills"
+      fi
+      ;;
+    kimi)
+      check_runtime_file kimi "$KIMI_DIR/config.toml" toml
+      check_runtime_file kimi "$KIMI_DIR/tui.toml" toml
+      check_runtime_file kimi "$KIMI_DIR/mcp.json" json
+      check_executable_scripts kimi "$KIMI_DIR/scripts"
+      check_legacy_references kimi \
+        "$KIMI_DIR/config.toml" "$KIMI_DIR/AGENTS.md" "$KIMI_DIR/scripts"
+      ;;
+    opencode)
+      check_runtime_file opencode "$OPENCODE_DIR/opencode.json" json
+      check_legacy_references opencode \
+        "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR/AGENTS.md"
+      ;;
+  esac
+}
+
 mapfile -t HARNESSES < <(selected_harnesses)
 for harness in "${HARNESSES[@]}"; do
   check_skill_collisions "$harness"
+  validate_harness_sources "$harness"
 done
 
 for harness in "${HARNESSES[@]}"; do
@@ -481,6 +1077,12 @@ done
 
 if [ "$MODE" = check ] && [ -e "$AGENTS_DIR/AGENTS.md" ]; then
   report_drift shared "$AGENTS_DIR/AGENTS.md" unexpected
+fi
+
+if [ "$MODE" = check ]; then
+  for harness in "${HARNESSES[@]}"; do
+    check_harness_runtime "$harness"
+  done
 fi
 
 if [ "$MODE" = check ] && [ "$CHECK_FAILED" -ne 0 ]; then

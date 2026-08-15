@@ -29,6 +29,7 @@ assert_not_exists "$HOME/.agents/skills/legacy-removed"
 
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/api-design/SKILL.md"
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/wsl-windows-gui/SKILL.md"
+assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml"
 [ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/api-design" ]
 
 backup_count_before=0

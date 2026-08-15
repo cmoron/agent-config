@@ -1,6 +1,5 @@
-# ~/.kimi-code/config.toml — géré en git dans ~/src/kimi-config, déployé via install.sh (symlink).
-# Kimi Code peut réécrire certaines sections (providers/models managés, tables OAuth
-# injectées par /login) : ces diffs apparaîtront dans git, à revoir comme les autres.
+# Source declarative agent-config. Le deploiement fusionne les permissions et
+# hooks geres avec les providers/modeles et sections runtime ecrits par Kimi.
 
 default_model = "kimi-code/k3"
 # Équivalent du "bypassPermissions" de Claude Code : auto-approve des outils,
@@ -75,78 +74,97 @@ key = "oauth/kimi-code"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(rm -rf /)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(rm -rf --no-preserve-root /)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(git push --force *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(git push -f *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(sudo rm -rf *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(sudo dd *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(sudo chmod 777 *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(rm -rf ~*)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(rm -rf /*)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(rm -rf .)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(curl * | sh)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(wget * | sh)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(chmod 777 *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(dd *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(shutdown *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(reboot *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(git reset --hard *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(git clean -fd *)"
 
 [[permission.rules]]
 decision = "deny"
+scope = "user"
 pattern = "Bash(prisma reset *)"
 
 # ---------------------------------------------------------------------------
@@ -158,31 +176,38 @@ pattern = "Bash(prisma reset *)"
 [[hooks]]
 event = "PostToolUse"
 matcher = "Write|Edit"
-command = "$HOME/src/kimi-config/scripts/format-on-save.sh"
+command = "$HOME/.kimi-code/scripts/format-on-save.sh"
 timeout = 20
 
 # Bloque l'écriture sur les fichiers .env sensibles
 [[hooks]]
 event = "PreToolUse"
 matcher = "Write|Edit"
-command = "$HOME/src/kimi-config/scripts/protect-env.sh"
+command = "$HOME/.kimi-code/scripts/protect-env.sh"
 timeout = 10
 
 # Son "travail terminé" en fin de tour
 [[hooks]]
 event = "Stop"
-command = "$HOME/src/kimi-config/scripts/notify-sound.sh"
+command = "$HOME/.kimi-code/scripts/notify-sound.sh"
 timeout = 10
 
 # Backstop auto-amélioration, 1×/session (cf. AGENTS.md § Auto-amélioration)
 [[hooks]]
 event = "Stop"
-command = "$HOME/src/kimi-config/scripts/reflect-nudge.sh"
+command = "$HOME/.kimi-code/scripts/reflect-nudge.sh"
 timeout = 10
 
 # Son quand une tâche de fond se termine
 [[hooks]]
 event = "Notification"
 matcher = 'task\.completed'
-command = "$HOME/src/kimi-config/scripts/notify-sound.sh"
+command = "$HOME/.kimi-code/scripts/notify-sound.sh"
 timeout = 10
+
+[loop_control]
+max_retries_per_step = 3
+reserved_context_size = 50000
+
+[mcp.client]
+tool_call_timeout_ms = 60000

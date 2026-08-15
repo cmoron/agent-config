@@ -1,7 +1,7 @@
 # Using the lotusim-developer skill
 
-This Codex config ships a coding-agent skill at
-`skills/lotusim-developer/` (`SKILL.md` + `references/`). The skill adds a
+Agent Config ships a Codex-specific coding-agent skill at
+`harnesses/codex/skills/lotusim-developer/` (`SKILL.md` + `references/`). The skill adds a
 deeper, task-oriented map for LOTUSim work and opens with 6 field-tested
 pitfalls.
 
@@ -10,7 +10,7 @@ markdown), so it works with any harness that supports skills.
 
 ## Codex
 
-`~/src/codex-config/install.sh` deploys this skill to `~/.codex/skills/` and,
+`~/src/agent-config/install.sh` deploys this skill to `~/.codex/skills/` and,
 when present, to the Windows Codex config directory.
 
 ## Universal installer (optional)

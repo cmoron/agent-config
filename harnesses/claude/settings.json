@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/src/claude-config/scripts/format-on-save.sh",
+            "command": "$HOME/.claude/scripts/format-on-save.sh",
             "timeout": 20
           }
         ]
@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/src/claude-config/scripts/protect-env.sh"
+            "command": "$HOME/.claude/scripts/protect-env.sh"
           }
         ]
       },
@@ -92,12 +92,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/src/claude-config/scripts/notify-sound.sh",
+            "command": "$HOME/.claude/scripts/notify-sound.sh",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "$HOME/src/claude-config/scripts/reflect-nudge.sh",
+            "command": "$HOME/.claude/scripts/reflect-nudge.sh",
             "timeout": 10
           }
         ]
@@ -108,7 +108,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/src/claude-config/scripts/notify-sound.sh",
+            "command": "$HOME/.claude/scripts/notify-sound.sh",
             "timeout": 10
           }
         ]

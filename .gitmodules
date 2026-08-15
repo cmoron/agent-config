@@ -1,0 +1,3 @@
+[submodule "harnesses/claude/upstream/anthropic-skills"]
+	path = harnesses/claude/upstream/anthropic-skills
+	url = https://github.com/anthropics/skills.git

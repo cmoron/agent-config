@@ -1,0 +1,10 @@
+model = "windows-runtime-model"
+
+[desktop]
+computer_use = true
+
+[plugins.chrome]
+enabled = true
+
+[runtime.unknown]
+preserve = "exactly"

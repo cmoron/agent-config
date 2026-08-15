@@ -124,7 +124,7 @@ enabled = true
 [plugins."ponytail@ponytail"]
 enabled = true
 
-[projects."/Users/cyril/src/codex-config"]
+[projects."/home/cyril/src/agent-config"]
 trust_level = "trusted"
 
 [projects."/Users/cyril/src/lotusim-lab"]

@@ -3,21 +3,22 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PAYLOAD='{"session_id":"codex-config-test","turn_id":"test","cwd":"/tmp","stop_hook_active":false,"last_assistant_message":"done"}'
+CODEX_HARNESS="$ROOT/harnesses/codex"
+PAYLOAD='{"session_id":"agent-config-test","turn_id":"test","cwd":"/tmp","stop_hook_active":false,"last_assistant_message":"done"}'
 
-output=$(printf '%s' "$PAYLOAD" | "$ROOT/scripts/reflect-nudge.sh")
+output=$(printf '%s' "$PAYLOAD" | "$CODEX_HARNESS/scripts/reflect-nudge.sh")
 printf '%s' "$output" | jq -e 'type == "object"' >/dev/null
 
 set +e
 printf '%s' '{"tool_input":{"command":"*** Begin Patch\n*** Update File: .env\n@@\n-OLD=1\n+OLD=2\n*** End Patch"}}' \
-  | "$ROOT/scripts/protect-env.sh" >/dev/null 2>&1
-status=$?
+  | "$CODEX_HARNESS/scripts/protect-env.sh" >/dev/null 2>&1
+hook_exit=$?
 set -e
-[ "$status" -eq 2 ]
+[ "$hook_exit" -eq 2 ]
 
 if command -v rtk >/dev/null && command -v jq >/dev/null; then
   printf '%s' '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git status"}}' \
-    | "$ROOT/scripts/rtk-codex-hook.sh" \
+    | "$CODEX_HARNESS/scripts/rtk-codex-hook.sh" \
     | jq -e '
         .hookSpecificOutput.permissionDecision == "allow"
         and (.hookSpecificOutput.updatedInput.command | startswith("rtk "))
@@ -31,6 +32,25 @@ jq -e '
     and ($commands | all(contains("notify-sound.sh") | not))
     and ([.hooks.PreToolUse[] | select(.matcher == "^Bash$") | .hooks[].command]
          | any(contains("rtk-codex-hook.sh")))
-' "$ROOT/hooks.json" >/dev/null
+' "$CODEX_HARNESS/hooks.json" >/dev/null
+
+jq -e '
+  [.hooks[][]?.hooks[]?.command? // empty]
+  | all(contains("$HOME/src/claude-config") | not)
+' "$ROOT/harnesses/claude/settings.json" >/dev/null
+
+grep -q 'command = "$HOME/.kimi-code/scripts/format-on-save.sh"' \
+  "$ROOT/harnesses/kimi/config.toml"
+
+if rg -n 'src/(claude-config|codex-config|kimi-config)' \
+  "$ROOT/harnesses/claude/settings.json" \
+  "$ROOT/harnesses/claude/scripts" \
+  "$ROOT/harnesses/codex/hooks.json" \
+  "$ROOT/harnesses/codex/scripts" \
+  "$ROOT/harnesses/kimi/config.toml" \
+  "$ROOT/harnesses/kimi/scripts"; then
+  printf '%s\n' 'legacy source path remains in hook configuration' >&2
+  exit 1
+fi
 
 echo "hooks: ok"
