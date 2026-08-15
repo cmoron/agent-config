@@ -21,6 +21,12 @@ EOF
 cat >"$HOME/.codex/config.toml" <<'EOF'
 model = "runtime-model"
 
+[marketplaces.ponytail]
+last_updated = "2026-01-01T00:00:00Z"
+last_revision = "deadbeef"
+source_type = "git"
+source = "https://github.com/DietrichGebert/ponytail.git"
+
 [hooks.state."keep-me"]
 trusted_hash = "runtime-hash"
 
@@ -80,12 +86,29 @@ if rg -n 'src/(claude-config|codex-config|kimi-config)' \
   exit 1
 fi
 
+# Claude Code rewrites settings.json in its own key order; that is not drift.
+jq 'to_entries | reverse | from_entries' \
+  "$HOME/.claude/settings.json" >"$TEST_TMP/unsorted-settings.json"
+mv "$TEST_TMP/unsorted-settings.json" "$HOME/.claude/settings.json"
+chmod 600 "$HOME/.claude/settings.json"
+settings_hash="$(sha256sum "$HOME/.claude/settings.json" | awk '{print $1}')"
+"$TEST_ROOT/install.sh" --only claude --check >/dev/null
+"$TEST_ROOT/install.sh" --only claude >/dev/null
+[ "$settings_hash" = "$(sha256sum "$HOME/.claude/settings.json" | awk '{print $1}')" ] || {
+  printf '%s\n' 'reordered settings.json was rewritten' >&2
+  exit 1
+}
+
 "$TEST_ROOT/install.sh" --only codex >/dev/null
 grep -q '^\[hooks.state."keep-me"\]$' "$HOME/.codex/config.toml"
 grep -q '^trusted_hash = "runtime-hash"$' "$HOME/.codex/config.toml"
 grep -q '^\[projects."/home/cyril/src/runtime-project"\]$' "$HOME/.codex/config.toml"
 grep -q '^trust_level = "trusted"$' "$HOME/.codex/config.toml"
 grep -q '^\[mcp_servers.playwright\]$' "$HOME/.codex/config.toml"
+# Codex stamps these into a source-owned section; keep them, exactly once.
+[ "$(grep -c '^last_revision = "deadbeef"$' "$HOME/.codex/config.toml")" -eq 1 ]
+[ "$(grep -c '^last_updated = "2026-01-01T00:00:00Z"$' "$HOME/.codex/config.toml")" -eq 1 ]
+"$TEST_ROOT/install.sh" --only codex --check >/dev/null
 if rg -n '^trust_level\s*=' "$TEST_ROOT/harnesses/codex/config.toml"; then
   printf '%s\n' 'Codex source must not version machine-local project trust' >&2
   exit 1
@@ -143,7 +166,7 @@ fi
 jq -S . "$TEST_ROOT/harnesses/opencode/opencode.json" >"$TEST_TMP/source-opencode.json"
 jq -S . "$HOME/.config/opencode/opencode.json" >"$TEST_TMP/runtime-opencode.json"
 cmp "$TEST_TMP/source-opencode.json" "$TEST_TMP/runtime-opencode.json"
-[ "$(stat -c '%a' "$HOME/.config/opencode/opencode.json")" = 600 ]
+[ "$(path_mode "$HOME/.config/opencode/opencode.json")" = 600 ]
 
 if ! "$TEST_ROOT/install.sh" --check >"$TEST_TMP/check.out" 2>&1; then
   printf '%s\n' 'expected a clean consolidated check:' >&2

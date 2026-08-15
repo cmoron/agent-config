@@ -53,7 +53,7 @@ dry_home="$TEST_TMP/dry-home"
 mkdir -p "$dry_home"
 HOME="$dry_home" AGENT_CONFIG_WINDOWS_CODEX_DIR='' AGENT_CONFIG_SKIP_PLUGINS=1 \
   "$TEST_ROOT/install.sh" --dry-run --only claude >"$TEST_TMP/dry.out"
-[ -z "$(find "$dry_home" -mindepth 1 -print -quit)" ]
+assert_home_untouched "$dry_home"
 grep -q '^WOULD ' "$TEST_TMP/dry.out"
 
 if "$TEST_ROOT/install.sh" --only unknown >"$TEST_TMP/unknown.out" 2>&1; then

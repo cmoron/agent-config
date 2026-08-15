@@ -26,7 +26,7 @@ export AGENT_CONFIG_WINDOWS_CODEX_DIR=''
 grep -q '^plugin marketplace upgrade claude-plugins-official$' "$AGENT_CONFIG_CODEX_LOG"
 grep -q '^plugin marketplace upgrade ponytail$' "$AGENT_CONFIG_CODEX_LOG"
 
-python3 - "$TEST_ROOT/harnesses/codex/config.toml" <<'PY' >"$TEST_TMP/expected-plugins"
+"$TEST_PYTHON" - "$TEST_ROOT/harnesses/codex/config.toml" <<'PY' >"$TEST_TMP/expected-plugins"
 import sys
 import tomllib
 

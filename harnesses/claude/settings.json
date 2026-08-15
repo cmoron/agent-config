@@ -9,8 +9,22 @@
       "Bash(sudo rm -rf *)",
       "Bash(sudo dd *)",
       "Bash(sudo chmod 777 *)",
-      "Bash(rm -rf ~*)",
-      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/)",
+      "Bash(rm -rf $HOME)",
+      "Bash(rm -rf $HOME/)",
+      "Bash(rm -rf /Users/cyril)",
+      "Bash(rm -rf /Users/cyril/)",
+      "Bash(rm -rf /home/cyril)",
+      "Bash(rm -rf /home/cyril/)",
+      "Bash(rm -rf /Applications*)",
+      "Bash(rm -rf /Library*)",
+      "Bash(rm -rf /System*)",
+      "Bash(rm -rf /bin*)",
+      "Bash(rm -rf /etc*)",
+      "Bash(rm -rf /opt*)",
+      "Bash(rm -rf /sbin*)",
+      "Bash(rm -rf /usr*)",
       "Bash(rm -rf .)",
       "Bash(curl * | sh)",
       "Bash(wget * | sh)",
@@ -22,7 +36,7 @@
       "Bash(git clean -fd *)",
       "Bash(prisma reset *)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "bypassPermissions"
   },
   "model": "opus[1m]",
   "hooks": {
@@ -134,7 +148,9 @@
     "claude-code-setup@claude-plugins-official": true,
     "ponytail@ponytail": true,
     "clangd-lsp@claude-plugins-official": true,
-    "codex@openai-codex": true
+    "codex@openai-codex": true,
+    "swift-lsp@claude-plugins-official": true,
+    "lua-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {

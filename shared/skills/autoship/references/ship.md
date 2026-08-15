@@ -53,7 +53,7 @@ rapport comme simple indicateur.
      toucher prod. Staging OK → promouvoir vers prod, puis vérifier le healthcheck prod.
    - Si **aucun staging n'existe** : déployer prod directement, vérifier le healthcheck —
      et **signaler dans le rapport** que le déploiement s'est fait sans gate staging
-     (facteur de risque additionnel assumé par l'utilisateur via `/autoship`).
+     (facteur de risque additionnel assumé par l'utilisateur en lançant autoship).
    - Le déploiement n'est validé que si le service répond.
 4. Main CI verte + healthcheck OK → **succès**, passer au rapport final.
 5. Main CI rouge OU healthcheck KO → **phase 5bis** (section 4).

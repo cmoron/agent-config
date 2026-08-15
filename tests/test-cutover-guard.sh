@@ -22,7 +22,7 @@ chmod +x "$TEST_TMP/legacy-install.sh"
 
 "$TEST_ROOT/scripts/legacy-installer-guard.sh"
 "$TEST_TMP/legacy-install.sh"
-[ "$(wc -l <"$legacy_log")" = 1 ]
+[ "$(wc -l <"$legacy_log")" -eq 1 ]
 if "$TEST_ROOT/scripts/cutover-marker.sh" status >/dev/null 2>&1; then
   printf '%s\n' 'inactive cutover marker reported active' >&2
   exit 1
@@ -45,7 +45,7 @@ else
   sourced_status="$?"
 fi
 [ "$sourced_status" = 78 ]
-[ "$(wc -l <"$legacy_log")" = 1 ]
+[ "$(wc -l <"$legacy_log")" -eq 1 ]
 "$TEST_ROOT/scripts/cutover-marker.sh" status >/dev/null
 
 "$TEST_ROOT/scripts/cutover-marker.sh" deactivate >/dev/null

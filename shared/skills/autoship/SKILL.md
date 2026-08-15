@@ -1,15 +1,31 @@
 ---
 name: autoship
-description: "Produit une petite feature/fix en autonomie totale — map, plan, build (TDD + review indépendante), spec-gate, vérif comportementale, doc, ship. Jamais bloquant : se termine toujours soit livré, soit en PR prête à reviser (atterrissage sûr si zone sensible DB/auth/CI-CD). Invoqué par /autoship. À utiliser quand le risque de régression est jugé faible par l'utilisateur."
+description: "Produit une petite feature/fix en autonomie totale — map, plan, build (TDD + review indépendante), spec-gate, vérif comportementale, doc, ship. Jamais bloquant : se termine toujours soit livré, soit en PR prête à reviser (atterrissage sûr si zone sensible DB/auth/CI-CD). À utiliser quand l'utilisateur demande explicitement autoship, une livraison autonome ou fire-and-forget, et qu'il juge le risque de régression faible."
 ---
 
 # Autoship
 
 Production autonome d'une **petite feature ou fix à faible risque de régression**.
-Mode **fire-and-forget** : aucune pause pour validation humaine. L'utilisateur décide en
-lançant `/autoship` que le risque est acceptable — ce skill ne réarbitre pas ce jugement.
+Mode **fire-and-forget** : aucune pause pour validation humaine. En lançant autoship,
+l'utilisateur décide que le risque est acceptable — ce skill ne réarbitre pas ce jugement.
 
-L'argument est la description de la tâche (`$ARGUMENTS` transmis par la commande).
+L'argument est la description de la tâche. Sous Claude Code il arrive par `$ARGUMENTS`
+depuis la commande `/autoship` ; ailleurs, c'est la demande de l'utilisateur telle quelle.
+
+### Selon le harness
+
+Utiliser les facilités natives quand elles existent, sans jamais en dépendre :
+
+- **Claude Code** — commande `/autoship`, sous-agents pour la review indépendante.
+- **Codex** — suivre l'avancement avec le plan de tâche quand il est disponible ;
+  reviewer indépendant via les outils multi-agent seulement s'ils sont présents et
+  justifiés ; la notification de fin de tour vient de la config `notify`, ne pas
+  supposer de canal push dédié.
+- **Kimi, OpenCode** — pas de commande dédiée ni de sous-agent : invoquer le skill par
+  son nom et faire la review en passe fraîche inline.
+
+Ne dispatcher un sous-agent que si le travail est assez volumineux pour amortir le coût
+et que le résultat est simple à vérifier.
 
 ## Principe
 
@@ -26,7 +42,8 @@ CI rouge après retries) **dégrade vers la PR-prête + rapport**, jamais vers u
 ## Phase 0 — Préflight (découverte + setup)
 
 1. Résoudre les conventions du projet, dans l'ordre :
-   - `CLAUDE.md` du projet (commandes test/lint/build, cible deploy)
+   - `AGENTS.md` du projet, puis `CLAUDE.md` s'il est le seul fichier local
+     (commandes test/lint/build, cible deploy)
    - skills `stack-*` et `deployment` applicables
    - manifestes : `pyproject.toml` / `package.json` / `Cargo.toml`
    - `.github/workflows/*` pour le workflow CI et la cible de déploiement
@@ -37,29 +54,35 @@ CI rouge après retries) **dégrade vers la PR-prête + rapport**, jamais vers u
 4. **Abort si la commande de test reste introuvable** : rien n'a été modifié → rapport
    (cf. section Rapport) et fin.
 
-Créer une todo-list (TodoWrite) avec une entrée par phase pour suivre la progression.
+Suivre la progression avec une entrée par phase, via le suivi de tâches natif du
+harness (TodoWrite sous Claude Code, plan de tâche sous Codex) ou une liste tenue à la main.
 
 ## Phase 1 — Map
 
-Comprendre le code pertinent à la tâche via le sous-agent `Explore`.
-Produire une compréhension **ciblée** en contexte (zones de code impactées, contrats,
-tests existants) — pas un dump de fichiers.
+Comprendre le code pertinent à la tâche : zones impactées, contrats, tests existants,
+chemins d'exécution. Produire une compréhension **ciblée** en contexte, pas un dump de
+fichiers. Déléguer à un sous-agent d'exploration s'il en existe un (`Explore` sous
+Claude Code) ; sinon explorer inline.
 
 ## Phase 2 — Plan
 
-Concevoir l'architecture de la solution via `superpowers:writing-plans`, calibrée pour
-une petite feature/fix. Pas de gate humain (fire-and-forget). Le plan reste interne au
+Concevoir l'architecture de la solution, calibrée pour une petite feature/fix — via un
+skill de planification s'il est disponible (`superpowers:writing-plans` sous Claude Code). Pas de gate humain (fire-and-forget). Le plan reste interne au
 run ; il n'est pas soumis à validation.
 
 ## Phase 3 — Build loop (sous-agents)
 
-Exécuter via `superpowers:subagent-driven-development` + `superpowers:test-driven-development` :
-par tâche → test d'abord (qui échoue), implémentation minimale, lint (via hooks, ne pas
-relancer manuellement), tests verts. **Retries bornés (3)** par tâche.
+Par tâche → test d'abord (qui échoue), implémentation minimale, lint (via hooks, ne pas
+relancer manuellement), tests verts. Sous Claude Code, exécuter via
+`superpowers:subagent-driven-development` + `superpowers:test-driven-development` ;
+ailleurs, dérouler la même boucle inline avec le skill `tdd`. **Retries bornés (3)** par tâche.
 
 Puis **review en boucle** sur le diff complet, par un reviewer **indépendant** (pas
-l'auteur) : `superpowers:requesting-code-review` → `superpowers:receiving-code-review` →
-appliquer les corrections → re-review, **jusqu'à clean ou borne (3)**. Finir par
+l'auteur) : bugs, régressions, erreurs de contrat, tests manquants, simplification.
+Sous Claude Code, `superpowers:requesting-code-review` →
+`superpowers:receiving-code-review` ; ailleurs, un sous-agent reviewer si le harness en
+offre un, sinon une passe fraîche inline. Appliquer les corrections puis re-review,
+**jusqu'à clean ou borne (3)**. Finir par
 `/simplify` sur le diff final. La phase n'est validée que si **build vert + tests verts**.
 
 Si après les retries le build/les tests ne passent pas → on ne peut pas atteindre une PR
@@ -68,7 +91,7 @@ verte : commit du WIP sur la branche de travail + rapport (toujours sans questio
 ## Phase 3bis — Spec-gate (a-t-on construit la _bonne_ chose ?)
 
 Brique réutilisable. Invoquer le skill `review` sur l'**axe Spec**, en lui donnant la
-description de tâche (`$ARGUMENTS`) comme critères d'acceptation, sur le diff depuis le
+description de tâche reçue comme critères d'acceptation, sur le diff depuis le
 merge-base : le diff répond-il à la demande **et** aux edge cases évidents ? Évaluation
 par un agent **frais** (pas celui qui a codé).
 

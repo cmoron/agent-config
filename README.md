@@ -24,6 +24,13 @@ La reference operationnelle et les archives de conception vivent dans :
 - `docs/reviews/2026-08-15-plan-review-claude.md` pour la review historique de
   ce plan.
 
+## Prerequis
+
+`install.sh` a besoin de `bash >= 4`, `python >= 3.11` (pour `tomllib`) et `jq`.
+macOS livre bash 3.2 et python 3.9 : l'installateur se re-execute sous le bash
+de Homebrew et choisit le premier `python3.x` qui expose `tomllib`.
+`AGENT_CONFIG_PYTHON` force cet interpreteur.
+
 ## Initialisation
 
 Un clone neuf peut soit initialiser les revisions epinglees par le superprojet,
@@ -147,11 +154,13 @@ deploiement de diagnostic.
 Les MCP ne sont pas rendus depuis un manifeste commun : leurs formats et leurs
 modes de lancement restent propres a chaque harness. Le tableau recense
 uniquement les serveurs declares dans les fichiers de ce depot; les MCP fournis
-par des plugins n'y figurent pas.
+par des plugins n'y figurent pas. Le serveur Unity de Codex reste
+`enabled = false`: son endpoint n'existe que pendant que l'editeur tourne, et il
+s'active par session avec `codex -c mcp_servers.unityMCP.enabled=true`.
 
 | Harness  | Source declarative                 | Serveurs declares |
 | -------- | ---------------------------------- | ----------------- |
 | Claude   | `harnesses/claude/settings.json`   | Linear            |
-| Codex    | `harnesses/codex/config.toml`      | Playwright        |
+| Codex    | `harnesses/codex/config.toml`      | Playwright, Unity |
 | Kimi     | `harnesses/kimi/mcp.json`          | Context7, Linear  |
 | OpenCode | `harnesses/opencode/opencode.json` | aucun             |

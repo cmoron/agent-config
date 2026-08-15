@@ -39,15 +39,9 @@ after_config_hash="$(sha256sum "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml" | a
   exit 1
 }
 
-snapshot_before="$(
-  tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
-    -C "$AGENT_CONFIG_WINDOWS_CODEX_DIR" -cf - . | sha256sum | awk '{print $1}'
-)"
+snapshot_before="$(tree_fingerprint "$AGENT_CONFIG_WINDOWS_CODEX_DIR")"
 "$TEST_ROOT/install.sh" --only codex >/dev/null
-snapshot_after="$(
-  tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
-    -C "$AGENT_CONFIG_WINDOWS_CODEX_DIR" -cf - . | sha256sum | awk '{print $1}'
-)"
+snapshot_after="$(tree_fingerprint "$AGENT_CONFIG_WINDOWS_CODEX_DIR")"
 [ "$snapshot_before" = "$snapshot_after" ] || {
   printf '%s\n' 'second Windows deployment changed the managed tree' >&2
   exit 1

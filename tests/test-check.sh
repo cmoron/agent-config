@@ -6,8 +6,7 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/test-lib.sh"
 
 snapshot_runtime() {
-  tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
-    -C "$TEST_TMP" -cf - home windows | sha256sum | awk '{print $1}'
+  tree_fingerprint "$TEST_TMP/home" "$TEST_TMP/windows"
 }
 
 new_test_home
@@ -22,6 +21,8 @@ printf '%s\n' '[' >"$HOME/.kimi-code/config.toml"
 printf '%s\n' '{ invalid json' >"$HOME/.config/opencode/opencode.json"
 printf '%s\n' '{"hook":"/home/cyril/src/codex-config/scripts/old.sh"}' \
   >"$AGENT_CONFIG_WINDOWS_CODEX_DIR/hooks.json"
+# A legacy path also leaks through a tilde, as in a carried-over header comment.
+printf '%s\n' '# gere dans ~/src/kimi-config' >>"$HOME/.kimi-code/AGENTS.md"
 
 before_dry_run="$(snapshot_runtime)"
 "$TEST_ROOT/install.sh" --dry-run >"$TEST_TMP/dry-run.out"
@@ -54,5 +55,6 @@ grep -Fq "DRIFT opencode $HOME/.config/opencode/opencode.json invalid-json" "$TE
 grep -Fq \
   "DRIFT windows $AGENT_CONFIG_WINDOWS_CODEX_DIR/hooks.json legacy-reference" \
   "$TEST_TMP/check.out"
+grep -Fq "DRIFT kimi $HOME/.kimi-code/AGENTS.md legacy-reference" "$TEST_TMP/check.out"
 
 printf 'check tests: PASS\n'

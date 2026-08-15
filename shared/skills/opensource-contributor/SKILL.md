@@ -39,8 +39,9 @@ Contrôle : relancer une requête sur un terme dont on **sait** qu'il existe dan
 Si elle ne renvoie rien non plus, c'est l'outil qui est en cause, pas le corpus.
 
 Résultats possibles :
+
 - **Une PR corrige déjà le problème** → ne pas ouvrir de doublon. Soutenir l'existante par un
-  commentaire *argumenté* (repro indépendante, confirmation de la cause racine, review technique —
+  commentaire _argumenté_ (repro indépendante, confirmation de la cause racine, review technique —
   pas un « +1 »), ou proposer un complément seulement s'il apporte réellement autre chose. La
   décision finale (fermer la sienne, garder, reviewer l'autre) revient à l'utilisateur.
 - **Une issue existe mais pas de PR** → la référencer dans la PR (`Closes #N`) et enchaîner.
@@ -93,6 +94,7 @@ Appliquer ce qui est imposé (format de commit, sign-off, template, base branch)
 
 De plus en plus de projets encadrent — voire **interdisent** — les contributions générées ou
 assistées par IA. Les régimes varient :
+
 - **transparence obligatoire** (déclarer l'assistance IA, ex. noyau Linux : `Signed-off-by`
   engage le DCO, et l'usage d'outils doit être divulgué),
 - **interdiction** pure de patchs IA non supervisés,
@@ -105,11 +107,13 @@ termes : `AI`, `LLM`, `generated`, `assisted`, `agent`, `Copilot`, `ChatGPT`, `C
 - Interdiction, ou doute non levé → **ne pas pousser** sans validation explicite de l'utilisateur.
 - **Pas de règle trouvée → divulgation par défaut, jamais silence.** Deux traces obligatoires :
   - trailer de commit, après le `Signed-off-by` :
-    `Assisted-by: <nom du modèle> (<model-id>) via Kimi Code.`
-    (ex. `Assisted-by: Kimi K3 (kimi-k3) via Kimi Code.`)
+    `Assisted-by: <nom du modèle> (<model-id>) via <harness>.`
+    Nommer le modèle et le harness **réellement** utilisés pour ce commit —
+    ex. `Assisted-by: Claude Fable 5 (claude-fable-5) via Claude Code.`,
+    `Assisted-by: GPT-5.6 Sol (gpt-5.6-sol) via Codex.`
   - une ligne équivalente dans le corps de la PR ou de l'issue.
-  C'est la position défendue publiquement par Cyril (conf devant la gouvernance
-  LOTUSim) : la transparence est le défaut, l'omission n'est pas neutre.
+    C'est la position défendue publiquement par Cyril (conf devant la gouvernance
+    LOTUSim) : la transparence est le défaut, l'omission n'est pas neutre.
 
 Tout ce qui précède existe dans le noyau Linux ; ce ne sera pas le cas de tous les projets —
 d'où la vérif systématique plutôt qu'une hypothèse.
@@ -134,7 +138,7 @@ Deux registres, deux règles inverses — ne pas les confondre :
 - **Artefacts** (commits, corps de PR, corps d'issue) : l'assistance IA se **déclare**
   (étape 4). On ne cache jamais.
 - **Commentaires conversationnels** (discussions de PR/issue, réponses aux mainteneurs) :
-  la *sensation* de lire de l'IA crispe, même quand le contenu est juste et relu par un
+  la _sensation_ de lire de l'IA crispe, même quand le contenu est juste et relu par un
   humain. Vécu : sur LOTUSim#48 (2026-08-04), un commentaire argumenté et validé s'est
   fait répondre « please stop posting AI-generated comments » — le fond a été accepté,
   le style a coûté le capital social.

@@ -2,6 +2,18 @@
 
 set -euo pipefail
 
+# macOS ships bash 3.2, which has neither mapfile nor associative arrays.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    candidate_major="$("$candidate" -c 'echo ${BASH_VERSINFO[0]}' 2>/dev/null || echo 0)"
+    if [ "${candidate_major:-0}" -ge 4 ]; then
+      exec "$candidate" "$0" "$@"
+    fi
+  done
+  printf '%s\n' 'agent-config requires bash >= 4; install it with: brew install bash' >&2
+  exit 1
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE=apply
 ONLY=""
@@ -29,9 +41,10 @@ else
 fi
 
 LEGACY_ROOTS=(
-  /home/cyril/src/claude-config
-  /home/cyril/src/codex-config
-  /home/cyril/src/kimi-config
+  "$HOME/src/claude-config"
+  "$HOME/src/codex-config"
+  "$HOME/src/kimi-config"
+  "$HOME/src/skills"
 )
 ANTHROPIC_ALLOWLIST=(
   claude-api
@@ -103,6 +116,33 @@ case "$ONLY" in
     ;;
 esac
 
+# macOS ships python 3.9, which predates tomllib.
+PYTHON="${AGENT_CONFIG_PYTHON:-}"
+if [ -z "$PYTHON" ]; then
+  for candidate in python3 python3.14 python3.13 python3.12 python3.11; do
+    if "$candidate" -c 'import tomllib' >/dev/null 2>&1; then
+      PYTHON="$candidate"
+      break
+    fi
+  done
+fi
+if [ -z "$PYTHON" ]; then
+  printf '%s\n' 'agent-config requires python >= 3.11 (tomllib) on PATH' >&2
+  exit 1
+fi
+
+# BSD realpath has no -m, and the path is allowed not to exist yet.
+normalize_path() {
+  "$PYTHON" -c 'import os, sys; print(os.path.normpath(sys.argv[1]))' "$1"
+}
+
+# BSD stat spells the octal mode differently from GNU stat.
+if stat -c '%a' . >/dev/null 2>&1; then
+  path_mode() { stat -c '%a' "$1"; }
+else
+  path_mode() { stat -f '%OLp' "$1"; }
+fi
+
 validate_safe_path() {
   local variable="$1"
   local path="$2"
@@ -113,7 +153,7 @@ validate_safe_path() {
       "$variable" "$path" >&2
     return 1
   fi
-  normalized="$(realpath -m -- "$path")"
+  normalized="$(normalize_path "$path")"
   if [ "$normalized" = / ]; then
     printf 'unsafe path override: %s=%s (filesystem root is forbidden)\n' \
       "$variable" "$path" >&2
@@ -194,7 +234,7 @@ json_is_valid() {
 }
 
 toml_is_valid() {
-  python3 -c \
+  "$PYTHON" -c \
     'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' \
     "$1" >/dev/null 2>&1
 }
@@ -400,7 +440,7 @@ deploy_copy_file() {
   local current_mode=""
 
   if [ -f "$target" ] && [ ! -L "$target" ]; then
-    current_mode="$(stat -c '%a' "$target")"
+    current_mode="$(path_mode "$target")"
     if cmp -s "$source" "$target" && [ "$current_mode" = "$required_mode" ]; then
       return 0
     fi
@@ -424,17 +464,31 @@ deploy_copy_file() {
   esac
 }
 
+# Applications rewrite the files they own in their own key order. Comparing an
+# app-owned JSON byte-for-byte against a `jq -S` rendering reports drift forever.
+rendered_matches() {
+  local rendered="$1"
+  local target="$2"
+
+  case "$3" in
+    json) jq -S . "$target" 2>/dev/null | cmp -s "$rendered" - ;;
+    *) cmp -s "$rendered" "$target" ;;
+  esac
+}
+
 deploy_rendered_file() {
   local harness="$1"
   local rendered="$2"
   local target="$3"
   local root="$4"
   local required_mode="${5:-644}"
+  local compare_as="${6:-raw}"
   local current_mode=""
 
   if [ -f "$target" ] && [ ! -L "$target" ]; then
-    current_mode="$(stat -c '%a' "$target")"
-    if cmp -s "$rendered" "$target" && [ "$current_mode" = "$required_mode" ]; then
+    current_mode="$(path_mode "$target")"
+    if rendered_matches "$rendered" "$target" "$compare_as" \
+      && [ "$current_mode" = "$required_mode" ]; then
       rm -f "$rendered"
       return 0
     fi
@@ -512,6 +566,44 @@ render_claude_settings() {
   fi
 }
 
+# Codex stamps refresh metadata into the source-owned [marketplaces.*] sections.
+# Dropping it makes --check drift again after every marketplace upgrade.
+preserve_codex_marketplace_state() {
+  "$PYTHON" - "$1" "$2" <<'PY'
+import sys
+
+output_path, target_path = sys.argv[1], sys.argv[2]
+runtime_keys = ("last_updated", "last_revision")
+
+
+def collect(lines):
+    preserved, section = {}, None
+    for line in lines:
+        if line.startswith("["):
+            section = line.strip() if line.startswith("[marketplaces.") else None
+        elif section and line.split("=", 1)[0].strip() in runtime_keys:
+            preserved.setdefault(section, []).append(line)
+    return preserved
+
+
+with open(target_path, encoding="utf-8") as handle:
+    preserved = collect(handle.read().splitlines())
+if not preserved:
+    raise SystemExit(0)
+
+with open(output_path, encoding="utf-8") as handle:
+    lines = handle.read().splitlines()
+
+merged = []
+for line in lines:
+    merged.append(line)
+    merged.extend(preserved.get(line.strip(), []))
+
+with open(output_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(merged) + "\n")
+PY
+}
+
 render_codex_config() {
   local output="$1"
   local source="$ROOT/harnesses/codex/config.toml"
@@ -520,6 +612,7 @@ render_codex_config() {
 
   cp "$source" "$output"
   [ -f "$target" ] || return 0
+  preserve_codex_marketplace_state "$output" "$target"
 
   runtime_state="$(mktemp)"
   awk '
@@ -599,7 +692,7 @@ deploy_harness_config() {
     claude)
       rendered="$(render_temp_for "$CLAUDE_DIR/settings.json")"
       render_claude_settings "$rendered"
-      deploy_rendered_file claude "$rendered" "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR" 600
+      deploy_rendered_file claude "$rendered" "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR" 600 json
       deploy_link claude "$ROOT/harnesses/claude/scripts" "$CLAUDE_DIR/scripts" "$CLAUDE_DIR"
       deploy_link claude "$ROOT/shared/assets" "$CLAUDE_DIR/assets" "$CLAUDE_DIR"
       deploy_named_files claude "$ROOT/harnesses/claude/commands" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"
@@ -730,7 +823,7 @@ directory_names() {
 }
 
 load_matt_skill_entries() {
-  python3 - "$MATT_ROOT" "$MATT_MANIFEST" <<'PY'
+  "$PYTHON" - "$MATT_ROOT" "$MATT_MANIFEST" <<'PY'
 import json
 import re
 import sys
@@ -920,7 +1013,7 @@ bootstrap_codex_plugins() {
       [ -n "$plugin" ] || continue
       codex plugin add "$plugin" >/dev/null
     done < <(
-      python3 - "$ROOT/harnesses/codex/config.toml" <<'PY'
+      "$PYTHON" - "$ROOT/harnesses/codex/config.toml" <<'PY'
 import sys
 import tomllib
 
@@ -1238,7 +1331,7 @@ check_legacy_references() {
     # Also match a literal runtime $HOME.
     # shellcheck disable=SC2016
     grep -RIlE \
-      '(/home/[^/]+|\$HOME)/src/(claude-config|codex-config|kimi-config)' \
+      '(~|/home/[^/]+|/Users/[^/]+|\$HOME)/src/(claude-config|codex-config|kimi-config)' \
       -- "$@" 2>/dev/null | sort -u || true
   )
 }

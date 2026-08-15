@@ -19,7 +19,7 @@ chmod 600 "$HOME/.profile.local"
 grep -Fxq 'export UNRELATED_RUNTIME_VALUE="keep-me"' "$HOME/.profile.local"
 grep -Fxq 'export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1' "$HOME/.profile.local"
 [ "$(grep -Fc 'export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1' "$HOME/.profile.local")" = 1 ]
-[ "$(stat -c '%a' "$HOME/.profile.local")" = 600 ]
+[ "$(path_mode "$HOME/.profile.local")" = 600 ]
 assert_link_to \
   "$HOME/.config/opencode/skills/api-design" \
   "$TEST_ROOT/shared/skills/api-design"

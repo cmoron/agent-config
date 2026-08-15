@@ -21,9 +21,17 @@ required_paths=(
   shared/skills/stack-python/SKILL.md
   shared/skills/stack-rust/SKILL.md
   shared/skills/stack-ts/SKILL.md
+  shared/skills/agent-config/SKILL.md
+  shared/skills/autoship/SKILL.md
+  shared/skills/commit/SKILL.md
+  shared/skills/linear/SKILL.md
+  shared/skills/lotusim-developer/SKILL.md
+  shared/skills/macos-control/SKILL.md
+  shared/skills/openclaw/SKILL.md
+  shared/skills/opensource-contributor/SKILL.md
+  shared/skills/wsl-windows-gui/SKILL.md
   harnesses/claude/instructions.overlay.md
   harnesses/claude/settings.json
-  harnesses/claude/skills/agent-config/SKILL.md
   harnesses/claude/config/ccstatusline/settings.json
   harnesses/claude/commands/autoship.md
   harnesses/claude/commands/commit.md
@@ -31,7 +39,6 @@ required_paths=(
   harnesses/codex/config.toml
   harnesses/codex/hooks.json
   harnesses/codex/rules/default.rules
-  harnesses/codex/skills/agent-config/SKILL.md
   harnesses/kimi/instructions.overlay.md
   harnesses/kimi/config.toml
   harnesses/kimi/mcp.json
@@ -45,6 +52,16 @@ required_paths=(
 for path in "${required_paths[@]}"; do
   if [ ! -e "$ROOT/$path" ]; then
     printf 'missing required path: %s\n' "$path" >&2
+    exit 1
+  fi
+done
+
+# Source unique : un skill vit dans shared/skills, jamais duplique par harness.
+for harness in claude codex kimi opencode; do
+  harness_skills="$ROOT/harnesses/$harness/skills"
+  [ -d "$harness_skills" ] || continue
+  if [ -n "$(find "$harness_skills" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+    printf 'harness-specific skill must live in shared/skills: %s\n' "$harness_skills" >&2
     exit 1
   fi
 done

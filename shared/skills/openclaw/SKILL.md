@@ -39,7 +39,7 @@ Model-agnostic : on fournit ses propres clés API (cf. § Modèles IA).
   `AGENTS.md` (manuel opératoire / règles), l'historique de session et les skills pertinents.
 - **Skills** — playbooks `SKILL.md` à frontmatter YAML, **lazy-loaded** : seul le metadata
   est lu en permanence, le contenu complet n'est chargé que si la tâche matche le skill
-  (même principe d'économie de tokens que les skills Claude Code).
+  (même principe d'économie de tokens que les skills des agents de code).
 - **Heartbeat** — tours d'agent **périodiques** déclenchés sans message utilisateur, pour
   vérifier proactivement des tâches (Nestor : toutes les 30 min, 08h-22h30). Checklist
   dans `HEARTBEAT.md`.

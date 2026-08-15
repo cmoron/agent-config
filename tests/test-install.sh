@@ -12,7 +12,8 @@ mkdir -p "$HOME/.agents/skills" "$HOME/.codex/skills"
 mkdir -p "$HOME/foreign-skill"
 ln -s "$HOME/foreign-skill" "$HOME/.agents/skills/foreign"
 ln -s /missing/foreign-skill "$HOME/.agents/skills/foreign-broken"
-ln -s /home/cyril/src/codex-config/skills/removed "$HOME/.agents/skills/legacy-removed"
+ln -s "$HOME/src/codex-config/skills/removed" "$HOME/.agents/skills/legacy-removed"
+ln -s "$HOME/src/skills/skills/personal/removed" "$HOME/.agents/skills/legacy-matt-removed"
 
 "$TEST_ROOT/install.sh" --only codex
 
@@ -25,13 +26,16 @@ assert_link_to \
 assert_link_to \
   "$HOME/.agents/skills/grill-with-docs" \
   "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/grill-with-docs"
+# Tous les skills sont partages : le home Codex n'en contient aucun, le hub les a tous.
 assert_link_to \
-  "$HOME/.codex/skills/wsl-windows-gui" \
-  "$TEST_ROOT/harnesses/codex/skills/wsl-windows-gui"
+  "$HOME/.agents/skills/wsl-windows-gui" \
+  "$TEST_ROOT/shared/skills/wsl-windows-gui"
 assert_not_exists "$HOME/.codex/skills/api-design"
+assert_not_exists "$HOME/.codex/skills/wsl-windows-gui"
 assert_link_to "$HOME/.agents/skills/foreign" "$HOME/foreign-skill"
 assert_link_to "$HOME/.agents/skills/foreign-broken" /missing/foreign-skill
 assert_not_exists "$HOME/.agents/skills/legacy-removed"
+assert_not_exists "$HOME/.agents/skills/legacy-matt-removed"
 
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/api-design/SKILL.md"
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills/ask-matt/SKILL.md"
@@ -62,12 +66,16 @@ assert_link_to \
   "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/ask-matt"
 assert_link_to \
   "$HOME/.claude/skills/linear" \
-  "$TEST_ROOT/harnesses/claude/skills/linear"
+  "$TEST_ROOT/shared/skills/linear"
+assert_link_to \
+  "$HOME/.claude/skills/wsl-windows-gui" \
+  "$TEST_ROOT/shared/skills/wsl-windows-gui"
 
 "$TEST_ROOT/install.sh" --only kimi
 assert_link_to \
-  "$HOME/.kimi-code/skills/commit" \
-  "$TEST_ROOT/harnesses/kimi/skills/commit"
+  "$HOME/.agents/skills/commit" \
+  "$TEST_ROOT/shared/skills/commit"
+assert_not_exists "$HOME/.kimi-code/skills/commit"
 
 "$TEST_ROOT/install.sh" --only opencode
 assert_dir "$HOME/.config/opencode/skills"
@@ -88,7 +96,7 @@ if HOME="$missing_home" AGENT_CONFIG_WINDOWS_CODEX_DIR='' \
 fi
 grep -Fq "git submodule update --init --recursive" "$TEST_TMP/missing-upstream.out"
 grep -Fq "uv run scripts/update_upstreams.py --no-install" "$TEST_TMP/missing-upstream.out"
-[ -z "$(find "$missing_home" -mindepth 1 -print -quit)" ]
+assert_home_untouched "$missing_home"
 
 collision_root="$TEST_TMP/collision-source"
 mkdir -p \
@@ -116,6 +124,6 @@ if HOME="$collision_home" AGENT_CONFIG_WINDOWS_CODEX_DIR='' \
   exit 1
 fi
 grep -q 'skill collision for codex: api-design' "$TEST_TMP/collision.out"
-[ -z "$(find "$collision_home" -mindepth 1 -print -quit)" ]
+assert_home_untouched "$collision_home"
 
 printf 'install tests: PASS\n'

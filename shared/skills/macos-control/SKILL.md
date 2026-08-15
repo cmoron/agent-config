@@ -1,6 +1,6 @@
 ---
 name: macos-control
-description: Piloter macOS depuis Claude Code — captures d'écran, clics, frappe clavier, automatisation d'apps GUI. Charger dès qu'il s'agit de contrôler le Mac, cliquer quelque part, prendre une capture, tester une app native, piloter une interface graphique ou automatiser un outil sans CLI, même si « computer use » n'est jamais prononcé. Donne la règle de choix entre le serveur MCP natif `computer-use` et le chemin CLI de secours (screencapture / osascript / CGEvent) pour les sessions `-p`, hooks et cron — plus les pièges qui coûtent des heures de faux diagnostics.
+description: Piloter macOS depuis un agent de code — captures d'écran, clics, frappe clavier, automatisation d'apps GUI. Charger dès qu'il s'agit de contrôler le Mac, cliquer quelque part, prendre une capture, tester une app native, piloter une interface graphique ou automatiser un outil sans CLI, même si « computer use » n'est jamais prononcé. Donne la règle de choix entre le serveur MCP `computer-use` et le chemin CLI de secours (screencapture / osascript / CGEvent) pour les sessions non interactives, hooks et cron — plus les pièges qui coûtent des heures de faux diagnostics.
 ---
 
 # Contrôle macOS
@@ -11,7 +11,9 @@ natif est indisponible.
 
 ## 1. D'abord : `computer-use` natif
 
-Serveur MCP intégré à Claude Code, désactivé par défaut.
+Serveur MCP intégré à **Claude Code**, désactivé par défaut. Les autres harnais
+(Codex, Kimi, OpenCode) ne l'exposent pas : sous eux, aller directement au
+chemin CLI de la section 2.
 
 ```
 /mcp        # trouver « computer-use » → Enable (persiste par projet)
@@ -35,14 +37,15 @@ claude.ai (pas Bedrock/Vertex/Foundry), session **interactive**. Si
 
 Permissions demandées au premier usage : **Accessibilité** (cliquer, taper) et
 **Enregistrement de l'écran** (voir). macOS exige parfois un redémarrage de
-Claude Code après l'octroi de l'enregistrement d'écran.
+l'agent après l'octroi de l'enregistrement d'écran.
 
 Doc : https://code.claude.com/docs/en/computer-use
 
 ## 2. Sinon : le chemin CLI
 
-À réserver aux cas où le natif ne s'applique pas — mode `-p`/headless, hooks,
-cron, ou pilotage scripté déterministe depuis Bash (un script shell, pas un tour
+À réserver aux cas où le natif ne s'applique pas — harness sans `computer-use`,
+session non interactive (`-p`/headless), hooks, cron, ou pilotage scripté
+déterministe depuis Bash (un script shell, pas un tour
 de modèle).
 
 Les permissions se donnent au **bundle de l'app hôte**, pas au binaire `claude`.
@@ -117,7 +120,7 @@ CLI** — le natif les absorbe.
    conversion.
 
 3. **Locale française.** AppleScript formate les réels avec une virgule
-   (`136,5`), que tout parseur numérique refuse. Arrondir en entier *dans*
+   (`136,5`), que tout parseur numérique refuse. Arrondir en entier _dans_
    l'AppleScript avant de passer la valeur à un autre programme. Attention aussi
    à `round X as text`, qui se parse en `round (X as text)` et échoue.
 

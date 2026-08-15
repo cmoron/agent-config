@@ -79,6 +79,12 @@ use_memories = true
 command = "bunx"
 args = ["--bun", "@playwright/mcp@latest"]
 
+# Unity n'expose son endpoint MCP que pendant que l'editeur tourne.
+# A activer par session : codex -c mcp_servers.unityMCP.enabled=true
+[mcp_servers.unityMCP]
+url = "http://127.0.0.1:8080/mcp"
+enabled = false
+
 [marketplaces.claude-plugins-official]
 source_type = "git"
 source = "https://github.com/anthropics/claude-plugins-official.git"
