@@ -127,7 +127,10 @@ agent-config/
 │   │   ├── settings.json
 │   │   ├── agents/
 │   │   ├── commands/
+│   │   ├── config/ccstatusline/
 │   │   ├── hooks/
+│   │   ├── scripts/
+│   │   ├── upstream/anthropic-skills/
 │   │   └── skills/
 │   ├── codex/
 │   │   ├── instructions.overlay.md
@@ -144,6 +147,7 @@ agent-config/
 │   │   ├── tui.toml
 │   │   ├── mcp.json
 │   │   ├── hooks/
+│   │   ├── scripts/
 │   │   └── skills/
 │   └── opencode/
 │       ├── instructions.overlay.md
@@ -162,9 +166,9 @@ agent-config/
 └── update.sh
 ```
 
-`shared/scripts` et `shared/assets` peuvent rester vides apres le premier lot :
-leur presence exprime une destination autorisee, pas une obligation
-d'abstraction.
+`shared/assets` contient au minimum le son de notification byte-identique des
+trois anciens depots. `shared/scripts` peut rester vide : les protocoles de
+hooks restent propres aux harnesses.
 
 ## Matrice de deploiement
 
@@ -181,6 +185,54 @@ toujours rendues vers la cible native afin d'avoir un mecanisme identique et
 verifiable pour les quatre harnesses.
 
 ---
+
+### Task 0: Inventorier la surface de deploiement reelle
+
+**Files:**
+
+- Create: `docs/deployment-inventory.md`
+- Modify: `docs/superpowers/plans/2026-08-15-agent-config-consolidation.md`
+
+**Interfaces:**
+
+- Consumes: les trois installateurs historiques, leurs worktrees sales et les
+  cinq racines runtime Linux/WSL plus la cible Codex Windows.
+- Produces: pour chaque artefact, source, cible, type, proprietaire, decision
+  `repris`/`abandonne`/`differe`, nouvelle cible et preuve attendue.
+
+- [x] **Step 1: Enumerer statiquement chaque installateur**
+
+  Relever fichiers, repertoires, submodules, allowlists, chemins de hooks,
+  bootstrap plugins, cibles externes comme `~/.config/ccstatusline` et copies
+  Windows. Rechercher aussi les anciens noms de depot dans les scripts et
+  configurations.
+
+- [x] **Step 2: Comparer avec les arbres runtime**
+
+  Inspecter les types de chaque entree avec `find`, `stat` et `readlink`, sans
+  lire ni copier credentials, sessions, caches, memoires, bases, logs ou etats
+  de trust.
+
+- [x] **Step 3: Classer les changements locaux**
+
+  Consigner les diffs adoptes, ignores ou differes. Un fichier divergent reste
+  specifique tant que sa verite externe n'est pas prouvee.
+
+- [x] **Step 4: Verifier la couverture**
+
+  Chaque cible produite par les anciens installateurs doit avoir une ligne dans
+  l'inventaire. Le meme inventaire sera rejoue avant et apres la bascule pour
+  detecter toute perte.
+
+- [x] **Step 5: Verifier et committer**
+
+  ```bash
+  git diff --check
+  git add docs/deployment-inventory.md \
+    docs/reviews/2026-08-15-plan-review-claude.md \
+    docs/superpowers/plans/2026-08-15-agent-config-consolidation.md
+  git commit -m "docs: inventory the legacy deployment surface"
+  ```
 
 ### Task 1: Figer la provenance et la classification des donnees
 
@@ -333,6 +385,8 @@ verifiable pour les quatre harnesses.
   - purge d'un ancien lien gere retire de la source;
   - echec sans mutation si un meme nom est shared et specifique;
   - copie reelle, non symlink, dans le home Codex Windows temporaire.
+  - parite de l'arbre complet de chaque skill promu, pas seulement de
+    `SKILL.md`.
 
 - [ ] **Step 2: Verifier l'echec cible**
 
@@ -361,9 +415,7 @@ verifiable pour les quatre harnesses.
   ```bash
   bash tests/test-install.sh
   bash -n install.sh tests/*.sh
-  uv run --with pyyaml \
-    /home/cyril/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
-    shared/skills/api-design
+  uv run tests/validate-skills.py shared/skills
   git diff --check
   git commit -am "refactor: make portable skills single-source"
   ```
@@ -393,6 +445,8 @@ verifiable pour les quatre harnesses.
   - sortie inchangee lors d'un second rendu;
   - echec sans ecrasement si le harness est inconnu;
   - `--check` non-zero apres modification manuelle du fichier deploye.
+  - bandeau `Fichier genere - modifier agent-config` dans chaque rendu;
+  - echec de `--check` si `~/.agents/AGENTS.md` existe, sans suppression.
 
 - [ ] **Step 2: Extraire conservativement le socle**
 
@@ -401,6 +455,8 @@ verifiable pour les quatre harnesses.
   d'execution, Git et stacks. Deplacer entierement dans les overlays les
   sections qui nomment des commandes, modeles, sous-agents, outils, mecanismes
   de contexte, memoire, RTK ou auto-amelioration propres au harness.
+  Inliner le contenu actuel de `RTK.md` dans l'overlay Claude et retirer
+  l'import `@RTK.md`.
 
 - [ ] **Step 3: Interdire les contradictions**
 
@@ -453,6 +509,9 @@ verifiable pour les quatre harnesses.
   - `seed-only`: creer uniquement si la cible n'existe pas.
 
   Les credentials, caches, sessions et etats de trust sont toujours `ignore`.
+  `settings.json` Claude et `config.toml` Kimi sont `merge`, car les
+  applications les reecrivent. Documenter explicitement les cles source-owned
+  et runtime-owned avant d'implementer la fusion.
 
 - [ ] **Step 2: Ecrire les tests de selection en echec**
 
@@ -466,15 +525,24 @@ verifiable pour les quatre harnesses.
   Le parseur accepte exactement `--only`, `--check`, `--dry-run` et `--help`.
   Une valeur ou option inconnue termine non-zero avant mutation. Sans `--only`,
   deployer les quatre harnesses dans un ordre fixe documente.
+  Deployer les scripts Claude et Kimi sous leurs homes natifs et remplacer dans
+  les configurations tous les chemins vers les anciens depots. Les scripts de
+  notification utilisent l'asset deploye, jamais son ancien chemin source.
 
-- [ ] **Step 4: Mettre OpenCode sous gestion declarative**
+- [ ] **Step 4: Conserver les surfaces Claude externes**
+
+  Reprendre `ccstatusline`, commands, agents et le submodule Anthropic avec son
+  allowlist de huit skills. Ne supprimer aucune capacite existante sans decision
+  explicite dans `docs/deployment-inventory.md`.
+
+- [ ] **Step 5: Mettre OpenCode sous gestion declarative**
 
   Importer `~/.config/opencode/opencode.json` seulement apres comparaison avec
   la documentation et exclusion de tout secret. Sauvegarder le fichier runtime
   existant lors du premier deploiement; ne pas le modifier pendant les tests
   sous home temporaire.
 
-- [ ] **Step 5: Verifier et committer**
+- [ ] **Step 6: Verifier et committer**
 
   ```bash
   bash tests/test-install.sh
@@ -551,6 +619,8 @@ verifiable pour les quatre harnesses.
   doublons, liens casses, fichiers copies, JSON/TOML parsables, executabilite
   des hooks, matrice MCP documentee et preservation des fichiers app-owned.
   Chaque divergence imprime une ligne `DRIFT <harness> <target> <reason>`.
+  Verifier aussi l'absence de `~/.agents/AGENTS.md` et des anciens noms de depot
+  dans tout artefact gere ou script deploye.
 
 - [ ] **Step 3: Implementer un plan d'actions partage**
 
@@ -606,25 +676,33 @@ verifiable pour les quatre harnesses.
   Presenter le diff, les sauvegardes prevues et les quatre destinations. Ne pas
   executer `./install.sh` sur les homes reels sans validation explicite.
 
-- [ ] **Step 4: Observer deux cycles reels**
+- [ ] **Step 4: Neutraliser les anciens installateurs pendant la bascule**
+
+  Ajouter avant la bascule une garde inactive aux anciens `install.sh` et
+  `update.sh`. Activer atomiquement un marqueur de migration juste avant le
+  premier deploiement reel. Le simple retrait du bit executable est insuffisant,
+  car `bash install.sh` le contourne. Documenter le retrait du marqueur comme
+  premiere etape du rollback.
+
+- [ ] **Step 5: Observer deux cycles reels**
 
   Apres chaque deploiement autorise, utiliser normalement les quatre harnesses,
   puis executer `./install.sh --check`. Toute derive non classee bloque
   l'archivage et doit etre comprise avant modification.
 
-- [ ] **Step 5: Publier le nouveau depot**
+- [ ] **Step 6: Publier le nouveau depot**
 
   Creer ou selectionner le remote seulement apres validation du nom et de la
   visibilite. Verifier que le remote ne pointe pas vers `codex-config`, puis
   pousser sans force.
 
-- [ ] **Step 6: Proposer l'archivage separement**
+- [ ] **Step 7: Proposer l'archivage separement**
 
   Fournir les derniers SHA, remotes et changements locaux de `claude-config`,
   `codex-config` et `kimi-config`. Attendre une nouvelle autorisation avant de
   les rendre read-only, de les deplacer ou de les supprimer.
 
-- [ ] **Step 7: Commit de documentation final**
+- [ ] **Step 8: Commit de documentation final**
 
   ```bash
   git add README.md docs/migration-sources.md
