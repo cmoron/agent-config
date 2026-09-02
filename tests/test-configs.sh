@@ -105,6 +105,8 @@ grep -q '^trusted_hash = "runtime-hash"$' "$HOME/.codex/config.toml"
 grep -q '^\[projects."/home/cyril/src/runtime-project"\]$' "$HOME/.codex/config.toml"
 grep -q '^trust_level = "trusted"$' "$HOME/.codex/config.toml"
 grep -q '^\[mcp_servers.playwright\]$' "$HOME/.codex/config.toml"
+grep -q '^\[mcp_servers.linear\]$' "$HOME/.codex/config.toml"
+grep -q '^url = "https://mcp.linear.app/mcp"$' "$HOME/.codex/config.toml"
 # Codex stamps these into a source-owned section; keep them, exactly once.
 [ "$(grep -c '^last_revision = "deadbeef"$' "$HOME/.codex/config.toml")" -eq 1 ]
 [ "$(grep -c '^last_updated = "2026-01-01T00:00:00Z"$' "$HOME/.codex/config.toml")" -eq 1 ]

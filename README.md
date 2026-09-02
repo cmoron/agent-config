@@ -158,9 +158,9 @@ par des plugins n'y figurent pas. Le serveur Unity de Codex reste
 `enabled = false`: son endpoint n'existe que pendant que l'editeur tourne, et il
 s'active par session avec `codex -c mcp_servers.unityMCP.enabled=true`.
 
-| Harness  | Source declarative                 | Serveurs declares |
-| -------- | ---------------------------------- | ----------------- |
-| Claude   | `harnesses/claude/settings.json`   | Linear            |
-| Codex    | `harnesses/codex/config.toml`      | Playwright, Unity |
-| Kimi     | `harnesses/kimi/mcp.json`          | Context7, Linear  |
-| OpenCode | `harnesses/opencode/opencode.json` | aucun             |
+| Harness  | Source declarative                 | Serveurs declares         |
+| -------- | ---------------------------------- | ------------------------- |
+| Claude   | `harnesses/claude/settings.json`   | Linear                    |
+| Codex    | `harnesses/codex/config.toml`      | Playwright, Linear, Unity |
+| Kimi     | `harnesses/kimi/mcp.json`          | Context7, Linear          |
+| OpenCode | `harnesses/opencode/opencode.json` | aucun                     |

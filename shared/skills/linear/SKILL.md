@@ -6,16 +6,17 @@ description: Pour gérer les projets Linear de l'usine à SaaS — issues, sprin
 # Linear — Usine à SaaS (Cyril + Estelle)
 
 Linear est utilisé pour gérer les projets de l'usine à SaaS.
-Le MCP utilisé est `linear`, déclaré dans `settings.json` (HTTP, `https://mcp.linear.app/sse`) —
-il gère les appels API. Le connecteur claude.ai Linear fait doublon et n'est pas la référence.
+Le MCP utilisé est `linear`, déclaré nativement par harness en HTTP sur
+`https://mcp.linear.app/mcp`; il gère les appels API via OAuth. Le connecteur
+claude.ai Linear fait doublon et n'est pas la référence.
 Ce skill documente les conventions d'usage.
 
 ## Équipe
 
-| Personne | Rôle |
-|----------|------|
-| Cyril | Dev / CTO — implémentation, architecture, code review |
-| Estelle | PM / PO / Marketing — specs, priorités, feedback utilisateur |
+| Personne | Rôle                                                         |
+| -------- | ------------------------------------------------------------ |
+| Cyril    | Dev / CTO — implémentation, architecture, code review        |
+| Estelle  | PM / PO / Marketing — specs, priorités, feedback utilisateur |
 
 ## Organisation
 
@@ -41,13 +42,15 @@ Ce skill documente les conventions d'usage.
 
 ## Workflow avec le MCP
 
-Le MCP Linear permet à Claude de :
+Le MCP Linear permet aux agents de :
+
 - Lister les issues d'un projet (`list_issues`)
 - Créer une issue (`save_issue`)
 - Mettre à jour le statut (`save_issue` avec nouveau status)
 - Consulter un projet ou une équipe
 
 Exemple de flux typique :
+
 ```
 1. Lister les issues en backlog pour prioriser le sprint
 2. Créer les issues manquantes issues de la conversation
@@ -58,6 +61,7 @@ Exemple de flux typique :
 ## Priorités
 
 Utiliser les priorités Linear standard :
+
 - `Urgent` → bloquant, traiter aujourd'hui
 - `High` → sprint en cours
 - `Medium` → prochain sprint
