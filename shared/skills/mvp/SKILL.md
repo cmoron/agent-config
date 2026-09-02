@@ -27,7 +27,6 @@ monprojet/
 ```
 - ORM : SQLAlchemy async + Alembic migrations
 - Auth : JWT (python-jose) ou pas d'auth si POC
-- **Jamais** de `pip install` — toujours `uv add`
 
 ### Web app complète (UI non critique)
 **FastAPI + Svelte + Vite**
@@ -44,7 +43,6 @@ monprojet/
 - Bundler/runtime JS : **Bun uniquement** (`bun install`, `bun run dev`)
 - Svelte (pas SvelteKit sauf si routing SSR vraiment nécessaire)
 - Vite pour le dev server
-- Pas de Next.js
 
 ### Monorepo full-JS (si équipe JS ou client React imposé)
 **React + Express + Bun**
@@ -60,7 +58,6 @@ monprojet/
 └── .github/workflows/
 ```
 - ORM : Prisma (TypeScript-first, fonctionne avec Express)
-- Runtime : Bun partout — **pas de npm, pnpm, yarn, node**
 - Biome pour lint + format (remplace ESLint + Prettier)
 
 ### CLI seule

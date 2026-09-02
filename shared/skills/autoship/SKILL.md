@@ -55,7 +55,7 @@ CI rouge après retries) **dégrade vers la PR-prête + rapport**, jamais vers u
    (cf. section Rapport) et fin.
 
 Suivre la progression avec une entrée par phase, via le suivi de tâches natif du
-harness (TodoWrite sous Claude Code, plan de tâche sous Codex) ou une liste tenue à la main.
+harness s'il en a un, sinon une liste tenue à la main.
 
 ## Phase 1 — Map
 
@@ -67,47 +67,47 @@ Claude Code) ; sinon explorer inline.
 ## Phase 2 — Plan
 
 Concevoir l'architecture de la solution, calibrée pour une petite feature/fix — via un
-skill de planification s'il est disponible (`superpowers:writing-plans` sous Claude Code). Pas de gate humain (fire-and-forget). Le plan reste interne au
-run ; il n'est pas soumis à validation.
+skill de planification s'il est disponible (`superpowers:writing-plans` sous Claude Code).
+Le plan reste interne au run.
 
 ## Phase 3 — Build loop (sous-agents)
 
 Par tâche → test d'abord (qui échoue), implémentation minimale, lint (via hooks, ne pas
 relancer manuellement), tests verts. Sous Claude Code, exécuter via
 `superpowers:subagent-driven-development` + `superpowers:test-driven-development` ;
-ailleurs, dérouler la même boucle inline avec le skill `tdd`. **Retries bornés (3)** par tâche.
+ailleurs, dérouler la même boucle inline avec le skill `tdd`. Retries bornés par tâche.
 
 Puis **review en boucle** sur le diff complet, par un reviewer **indépendant** (pas
 l'auteur) : bugs, régressions, erreurs de contrat, tests manquants, simplification.
 Sous Claude Code, `superpowers:requesting-code-review` →
 `superpowers:receiving-code-review` ; ailleurs, un sous-agent reviewer si le harness en
 offre un, sinon une passe fraîche inline. Appliquer les corrections puis re-review,
-**jusqu'à clean ou borne (3)**. Finir par
+jusqu'à clean ou borne. Finir par
 `/simplify` sur le diff final. La phase n'est validée que si **build vert + tests verts**.
 
 Si après les retries le build/les tests ne passent pas → on ne peut pas atteindre une PR
-verte : commit du WIP sur la branche de travail + rapport (toujours sans question).
+verte : commit du WIP sur la branche de travail + rapport.
 
 ## Phase 3bis — Spec-gate (a-t-on construit la _bonne_ chose ?)
 
-Brique réutilisable. Invoquer le skill `review` sur l'**axe Spec**, en lui donnant la
+Brique réutilisable. Invoquer le skill `code-review` sur l'**axe Spec**, en lui donnant la
 description de tâche reçue comme critères d'acceptation, sur le diff depuis le
 merge-base : le diff répond-il à la demande **et** aux edge cases évidents ? Évaluation
 par un agent **frais** (pas celui qui a codé).
 
 - Conforme → continuer.
-- Écart → rework **borné (3)** puis ré-évaluation. Toujours KO → atterrissage **PR-prête**
-  (cf. Phase 5), raison « spec-gate : <écart> ». Pas de question.
+- Écart → rework borné puis ré-évaluation. Toujours KO → atterrissage **PR-prête**
+  (cf. Phase 5), raison « spec-gate : <écart> ».
 
 ## Phase 3ter — Vérif comportementale (ça marche _vraiment_ ?)
 
-Brique réutilisable. « Tests verts » ≠ « la feature marche ». Invoquer le skill `verify`
-(lance l'app / appelle l'endpoint / `webapp-testing` Playwright si UI) pour observer le
-comportement réel attendu par la tâche.
+Brique réutilisable. « Tests verts » ≠ « la feature marche ». Observer le comportement
+réel attendu par la tâche : lancer l'app ou appeler l'endpoint (skill `run` sous Claude
+Code), `webapp-testing` Playwright si UI.
 
 - OK → continuer.
-- KO → rework **borné (3)** puis re-vérif. Toujours KO → atterrissage **PR-prête**
-  (cf. Phase 5), raison « verify : <symptôme> ». Pas de question.
+- KO → rework borné puis re-vérif. Toujours KO → atterrissage **PR-prête**
+  (cf. Phase 5), raison « vérif comportementale : <symptôme> ».
 
 ## Phase 4 — Doc
 
@@ -129,8 +129,7 @@ touchées par le diff :
 ## Phase 5bis — Auto-correction post-merge
 
 Atterrissage **auto** uniquement (il y a eu un merge réel). Déclenchée si, **après le merge
-sur main**, le CI sur main est rouge OU le healthcheck de déploiement est KO. Procédure détaillée dans `references/ship.md`. Fix-forward **borné
-(3 itérations)**. Si épuisé et main/prod toujours cassé → **auto-revert** du merge
+sur main**, le CI sur main est rouge OU le healthcheck de déploiement est KO. Procédure détaillée dans `references/ship.md`. Fix-forward borné. Si épuisé et main/prod toujours cassé → **auto-revert** du merge
 (restaure le dernier état sain via PR de revert) plutôt que laisser prod cassé. Prod n'est
 laissé en l'état **que si le revert lui-même échoue** → stop + escalade.
 

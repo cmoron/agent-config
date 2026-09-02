@@ -42,8 +42,8 @@
 Le hook PreToolUse `scripts/rtk-codex-hook.sh` reecrit automatiquement les
 commandes supportees. Pour les bytes exacts, utiliser `rtk proxy <cmd>` ou une
 sortie fichier. Utiliser directement `rtk read`, `rtk err`, `rtk log`,
-`rtk json` ou `rtk summary` lorsque leur sortie filtree suffit. Ne jamais
-relancer `rtk init` ou `rtk init --global`.
+`rtk json` ou `rtk summary` lorsque leur sortie filtree suffit. Ne pas relancer
+`rtk init` : il ecrit dans la config generee par agent-config, qui l'ecraserait.
 
 ### Contexte et memoire
 
@@ -53,5 +53,5 @@ relancer `rtk init` ou `rtk init --global`.
   globale, proposer le diff dans `agent-config/instructions/common.md` ou cet
   overlay, jamais dans `~/.codex/AGENTS.md`.
 
-Codex n'a pas de Stop hook de rappel : il bloquait les tours termines. Faire ce
-point aux frontieres de tache.
+Codex n'a pas de Stop hook de rappel : faire le point d'auto-amelioration aux
+frontieres de tache.

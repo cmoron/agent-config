@@ -10,7 +10,7 @@
 - Garder l'orchestration, les arbitrages et le debug difficile dans le modele
   principal. Deleguer le volume mecanique a Haiku, une implementation bien
   specifiee a Sonnet et un sous-probleme complexe a Opus. Fable est une escalade
-  ponctuelle si Opus bloque et si le modele est disponible.
+  ponctuelle si Opus bloque.
 - XS et S restent inline; deterministic signifie script ou commande, sans
   modele.
 
@@ -58,8 +58,8 @@ rtk hook check "<command>"
 ```
 
 Utiliser `rtk proxy` lorsqu'un programme exige les bytes exacts, par exemple
-pour appliquer un patch ou calculer un checksum. Ne jamais relancer `rtk init`
-ou `rtk init --global`.
+pour appliquer un patch ou calculer un checksum. Ne pas relancer `rtk init` :
+il ecrit dans la config generee par agent-config, qui l'ecraserait.
 
 Le Stop hook `scripts/reflect-nudge.sh` rappelle l'auto-amelioration une fois par
 session si du travail a eu lieu.

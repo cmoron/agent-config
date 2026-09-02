@@ -53,7 +53,7 @@ $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
 $bmp.Save("C:\Windows\Temp\capture.png", [System.Drawing.Imaging.ImageFormat]::Png)
 ```
 
-Puis lire `/mnt/c/Windows/Temp/capture.png` avec `view_image` (ou recadrer pour zoomer).
+Puis lire `/mnt/c/Windows/Temp/capture.png` avec l'outil de lecture d'image du harness (ou recadrer pour zoomer).
 
 ## Pièges courants
 
