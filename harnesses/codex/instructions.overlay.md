@@ -26,16 +26,16 @@
 
 ### Outils
 
-| Besoin | Preference | Fallback |
-| --- | --- | --- |
-| Recherche contenu | `rg` | recherche integree |
-| Recherche structure | `ast-grep` / `sg` | lecture ciblee |
-| Recherche fichiers | `fd` | `rg --files` |
-| Gros fichier inconnu | lecture ciblee par sections | `rtk read` |
-| Web | recherche web ciblee | source officielle directe |
-| Documentation de bibliotheque | `context7` | source officielle |
-| JSON/YAML | `jq` / `yq` | parseur structure |
-| Application Windows depuis WSL | skill `wsl-windows-gui` | PowerShell/UI Automation |
+| Besoin                         | Preference                  | Fallback                  |
+| ------------------------------ | --------------------------- | ------------------------- |
+| Recherche contenu              | `rg`                        | recherche integree        |
+| Recherche structure            | `ast-grep` / `sg`           | lecture ciblee            |
+| Recherche fichiers             | `fd`                        | `rg --files`              |
+| Gros fichier inconnu           | lecture ciblee par sections | `rtk read`                |
+| Web                            | recherche web ciblee        | source officielle directe |
+| Documentation de bibliotheque  | `context7`                  | source officielle         |
+| JSON/YAML                      | `jq` / `yq`                 | parseur structure         |
+| Application Windows depuis WSL | skill `wsl-windows-gui`     | PowerShell/UI Automation  |
 
 ### RTK
 
@@ -53,5 +53,5 @@ relancer `rtk init` ou `rtk init --global`.
   globale, proposer le diff dans `agent-config/instructions/common.md` ou cet
   overlay, jamais dans `~/.codex/AGENTS.md`.
 
-Le Stop hook `scripts/reflect-nudge.sh` rappelle l'auto-amelioration une fois par
-session si du travail a eu lieu.
+Codex n'a pas de Stop hook de rappel : il bloquait les tours termines. Faire ce
+point aux frontieres de tache.

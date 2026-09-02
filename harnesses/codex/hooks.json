@@ -41,17 +41,6 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.codex/scripts/reflect-nudge.sh",
-            "timeout": 10
-          }
-        ]
-      }
     ]
   }
 }

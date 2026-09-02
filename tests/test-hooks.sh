@@ -6,8 +6,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CODEX_HARNESS="$ROOT/harnesses/codex"
 PAYLOAD='{"session_id":"agent-config-test","turn_id":"test","cwd":"/tmp","stop_hook_active":false,"last_assistant_message":"done"}'
 
-output=$(printf '%s' "$PAYLOAD" | "$CODEX_HARNESS/scripts/reflect-nudge.sh")
-printf '%s' "$output" | jq -e 'type == "object"' >/dev/null
+# Hors depot git, le Stop hook Claude degrade en no-op muet.
+output=$(printf '%s' "$PAYLOAD" | "$ROOT/harnesses/claude/scripts/reflect-nudge.sh")
+[ -z "$output" ]
 
 set +e
 printf '%s' '{"tool_input":{"command":"*** Begin Patch\n*** Update File: .env\n@@\n-OLD=1\n+OLD=2\n*** End Patch"}}' \
@@ -25,14 +26,17 @@ if command -v rtk >/dev/null && command -v jq >/dev/null; then
       ' >/dev/null
 fi
 
+# Codex n'a pas de hook Stop : celui-ci bloquait les tours termines.
 jq -e '
-  [.hooks.Stop[].hooks[].command] as $commands
-  | ($commands | length == 1)
-    and ($commands[0] | contains("reflect-nudge.sh"))
-    and ($commands | all(contains("notify-sound.sh") | not))
-    and ([.hooks.PreToolUse[] | select(.matcher == "^Bash$") | .hooks[].command]
-         | any(contains("rtk-codex-hook.sh")))
+  (.hooks | has("Stop") | not)
+  and ([.hooks.PreToolUse[] | select(.matcher == "^Bash$") | .hooks[].command]
+       | any(contains("rtk-codex-hook.sh")))
 ' "$CODEX_HARNESS/hooks.json" >/dev/null
+
+[ ! -e "$CODEX_HARNESS/scripts/reflect-nudge.sh" ] || {
+  printf '%s\n' 'codex reflect-nudge.sh blocks completed turns; it must stay removed' >&2
+  exit 1
+}
 
 jq -e '
   [.hooks[][]?.hooks[]?.command? // empty]

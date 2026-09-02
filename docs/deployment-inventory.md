@@ -7,16 +7,17 @@ document ne peut pas etre supprimee ou remplacee pendant la bascule.
 
 ## Sources et changements locaux
 
-| Source          | Commit mesure                              | Changement local                                                            | Decision                                                                |
-| --------------- | ------------------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `codex-config`  | `a6ab99b2748f85caba946cf98953121967a52a1f` | `config.toml`: MCP Playwright via `bunx --bun`, plugin Playwright desactive | reprendre                                                               |
-| `claude-config` | `7ad1a9f40fc747114688bf66383b1a50c549022f` | `RTK.md`: `rtk hook check`                                                  | reprendre dans l'overlay Claude                                         |
+| Source          | Commit mesure                              | Changement local                                                            | Decision                                                                                                                   |
+| --------------- | ------------------------------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `codex-config`  | `a6ab99b2748f85caba946cf98953121967a52a1f` | `config.toml`: MCP Playwright via `bunx --bun`, plugin Playwright desactive | reprendre                                                                                                                  |
+| `claude-config` | `7ad1a9f40fc747114688bf66383b1a50c549022f` | `RTK.md`: `rtk hook check`                                                  | reprendre dans l'overlay Claude                                                                                            |
 | `claude-config` | idem                                       | `settings.json`: mode `auto`, modele `opus[1m]`                             | **corrige** : `auto` etait un etat local transitoire; l'etat declare est `bypassPermissions`, comme le commit de reference |
-| `claude-config` | idem                                       | `lotusim-developer`: nettoyage robuste des processus Gazebo                 | **revise** : promu dans `shared/skills` (cf. Partagee)                  |
-| `claude-config` | idem                                       | `openclaw`: documentation Nestor/Hermes et heartbeat 30 min                 | **revise** : promu dans `shared/skills` (cf. Partagee)                  |
-| `kimi-config`   | `852bc1a9b6ef81b9ea734732dee842fa257672b4` | `mcp.json`: retrait de Peekaboo et Unity                                    | reprendre; la cible contient Linear et Context7                         |
-| `kimi-config`   | idem                                       | `README.md`: liste MCP encore incoherente                                   | ne pas importer; reecrire le README consolide depuis la cible effective |
-| runtime Kimi    | hors Git                                   | `config.toml`: `scope = "user"`, `loop_control`, `mcp.client`               | reprendre semantiquement; classer le fichier `merge`                    |
+| `claude-config` | idem                                       | `lotusim-developer`: nettoyage robuste des processus Gazebo                 | **revise** : promu dans `shared/skills` (cf. Partagee)                                                                     |
+| `claude-config` | idem                                       | `openclaw`: documentation Nestor/Hermes et heartbeat 30 min                 | **revise** : promu dans `shared/skills` (cf. Partagee)                                                                     |
+| `codex-config`  | `7494e72` (posterieur a la mesure)         | `hooks.json` + `scripts/reflect-nudge.sh`: suppression du hook `Stop`       | reprendre : le hook bloquait les tours termines                                                                            |
+| `kimi-config`   | `852bc1a9b6ef81b9ea734732dee842fa257672b4` | `mcp.json`: retrait de Peekaboo et Unity                                    | reprendre; la cible contient Linear et Context7                                                                            |
+| `kimi-config`   | idem                                       | `README.md`: liste MCP encore incoherente                                   | ne pas importer; reecrire le README consolide depuis la cible effective                                                    |
+| runtime Kimi    | hors Git                                   | `config.toml`: `scope = "user"`, `loop_control`, `mcp.client`               | reprendre semantiquement; classer le fichier `merge`                                                                       |
 
 Les contenus divergents ne sont pas resolus par choix implicite. Ils restent
 dans le harness qui les possede jusqu'a une verification dediee.
