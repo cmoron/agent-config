@@ -63,7 +63,9 @@ if command -v opencode >/dev/null 2>&1; then
   local_skill_count="$(find "$TEST_ROOT/shared/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
   matt_skill_count="$(jq '.skills | length' \
     "$TEST_ROOT/upstreams/mattpocock-skills/.claude-plugin/plugin.json")"
-  expected_skill_count="$((local_skill_count + matt_skill_count))"
+  matt_extra_count="$(awk '!/^[[:space:]]*(#|$)/' \
+    "$TEST_ROOT/upstreams/mattpocock-extra-skills.txt" | wc -l)"
+  expected_skill_count="$((local_skill_count + matt_skill_count + matt_extra_count))"
   jq -e --argjson expected "$expected_skill_count" \
     'length == $expected' "$TEST_TMP/opencode-skills.json" >/dev/null
   jq -e \

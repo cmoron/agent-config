@@ -26,6 +26,10 @@ assert_link_to \
 assert_link_to \
   "$HOME/.agents/skills/grill-with-docs" \
   "$TEST_ROOT/upstreams/mattpocock-skills/skills/engineering/grill-with-docs"
+# Hors manifest amont, deploye via upstreams/mattpocock-extra-skills.txt.
+assert_link_to \
+  "$HOME/.agents/skills/writing-shape" \
+  "$TEST_ROOT/upstreams/mattpocock-skills/skills/in-progress/writing-shape"
 # Tous les skills sont partages : le home Codex n'en contient aucun, le hub les a tous.
 assert_link_to \
   "$HOME/.agents/skills/wsl-windows-gui" \

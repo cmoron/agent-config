@@ -93,7 +93,15 @@ matt_manifest="$ROOT/upstreams/mattpocock-skills/.claude-plugin/plugin.json"
   printf 'missing Matt Pocock skill manifest: %s\n' "$matt_manifest" >&2
   exit 1
 }
-mapfile -t matt_skills < <(jq -r '.skills[]' "$matt_manifest")
+matt_extras="$ROOT/upstreams/mattpocock-extra-skills.txt"
+[ -f "$matt_extras" ] || {
+  printf 'missing Matt Pocock extra skill list: %s\n' "$matt_extras" >&2
+  exit 1
+}
+mapfile -t matt_skills < <(
+  jq -r '.skills[]' "$matt_manifest"
+  grep -v '^[[:space:]]*\(#\|$\)' "$matt_extras"
+)
 matt_paths=()
 for skill in "${matt_skills[@]}"; do
   matt_paths+=("$ROOT/upstreams/mattpocock-skills/${skill#./}")

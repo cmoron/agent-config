@@ -129,6 +129,13 @@ Deux submodules suivent explicitement leur branche `main` :
 `grill-with-docs` suit directement Matt Pocock avec `grilling` et
 `domain-modeling`; aucune adaptation locale n'est maintenue.
 
+Le manifest amont ne promeut que `engineering/` et `productivity/`.
+`upstreams/mattpocock-extra-skills.txt` ajoute les skills utilises hors de ces
+buckets — aujourd'hui `misc/` et `in-progress/`. Ils sont valides et deployes
+comme ceux du manifest, toujours depuis le submodule et jamais forkes; un
+chemin retire en amont fait echouer l'installation au lieu de disparaitre en
+silence.
+
 La CLI de mise a jour aligne les deux submodules sur `origin/main`, lance toute
 la suite de tests, puis installe par defaut :
 

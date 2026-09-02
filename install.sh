@@ -58,6 +58,7 @@ ANTHROPIC_ALLOWLIST=(
 )
 MATT_ROOT="$ROOT/upstreams/mattpocock-skills"
 MATT_MANIFEST="$MATT_ROOT/.claude-plugin/plugin.json"
+MATT_EXTRAS="$ROOT/upstreams/mattpocock-extra-skills.txt"
 MATT_SKILL_ENTRIES=""
 WINDOWS_MANAGED_PATHS=()
 
@@ -823,7 +824,7 @@ directory_names() {
 }
 
 load_matt_skill_entries() {
-  "$PYTHON" - "$MATT_ROOT" "$MATT_MANIFEST" <<'PY'
+  "$PYTHON" - "$MATT_ROOT" "$MATT_MANIFEST" "$MATT_EXTRAS" <<'PY'
 import json
 import re
 import sys
@@ -831,6 +832,7 @@ from pathlib import Path, PurePosixPath
 
 root = Path(sys.argv[1])
 manifest_path = Path(sys.argv[2])
+extras_path = Path(sys.argv[3])
 if not manifest_path.is_file():
     raise SystemExit(
         "Matt Pocock skills submodule is missing; run "
@@ -842,6 +844,15 @@ manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 paths = manifest.get("skills")
 if not isinstance(paths, list) or not paths:
     raise SystemExit(f"invalid Matt Pocock skill manifest: {manifest_path}")
+
+# Le manifest ne promeut que engineering/ et productivity/; les skills utilises
+# hors de ces buckets sont listes a part, valides et deployes a l'identique.
+if extras_path.is_file():
+    paths = paths + [
+        line.strip()
+        for line in extras_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
 
 component = re.compile(r"^[a-z0-9-]+$")
 skills_root = (root / "skills").resolve()

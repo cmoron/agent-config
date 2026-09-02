@@ -47,6 +47,7 @@ required_paths=(
   harnesses/opencode/env.sh
   harnesses/opencode/opencode.json
   upstreams/mattpocock-skills/.claude-plugin/plugin.json
+  upstreams/mattpocock-extra-skills.txt
 )
 
 for path in "${required_paths[@]}"; do

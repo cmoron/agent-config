@@ -1,0 +1,12 @@
+# Skills Matt Pocock deployes hors manifest.
+#
+# Le manifest amont ne promeut que les buckets engineering/ et productivity/.
+# Ces skills-la vivent dans misc/ et in-progress/ : utilises ici, jamais
+# forkes. Un chemin qui disparait en amont fait echouer l'installation.
+./skills/misc/git-guardrails-claude-code
+./skills/misc/migrate-to-shoehorn
+./skills/misc/scaffold-exercises
+./skills/misc/setup-pre-commit
+./skills/in-progress/writing-beats
+./skills/in-progress/writing-fragments
+./skills/in-progress/writing-shape

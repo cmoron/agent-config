@@ -26,12 +26,12 @@ dans le harness qui les possede jusqu'a une verification dediee.
 
 ### Partagee
 
-| Artefact                     | Source actuelle                   | Cible actuelle                                       | Decision cible                                                                                           |
-| ---------------------------- | --------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 16 skills locaux             | forkes par harness dans les depots legacy | homes Claude/Codex/Kimi                      | source unique `shared/skills`; hub `~/.agents/skills`; miroirs Claude et OpenCode                        |
-| 25 skills Matt Pocock promus | `mattpocock/skills`               | plugin/skills externes                               | submodule sur `main`; selection dynamique par le manifest upstream; memes cibles que les skills partages |
-| son de notification          | trois copies byte-identiques      | chemins sous les anciens depots ou `~/.codex/assets` | source unique `shared/assets`; copie/lien dans l'assets dir natif de chaque harness                      |
-| instructions communes        | trois fichiers divergents         | fichiers globaux natifs                              | `instructions/common.md` + overlay rendu dans chaque home natif                                          |
+| Artefact              | Source actuelle                           | Cible actuelle                                       | Decision cible                                                                                                             |
+| --------------------- | ----------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 16 skills locaux      | forkes par harness dans les depots legacy | homes Claude/Codex/Kimi                              | source unique `shared/skills`; hub `~/.agents/skills`; miroirs Claude et OpenCode                                          |
+| 32 skills Matt Pocock | `mattpocock/skills`                       | plugin/skills externes                               | submodule sur `main`; 25 promus par le manifest amont + 7 listes hors buckets promus; memes cibles que les skills partages |
+| son de notification   | trois copies byte-identiques              | chemins sous les anciens depots ou `~/.codex/assets` | source unique `shared/assets`; copie/lien dans l'assets dir natif de chaque harness                                        |
+| instructions communes | trois fichiers divergents                 | fichiers globaux natifs                              | `instructions/common.md` + overlay rendu dans chaque home natif                                                            |
 
 `shared/skills` contient **tous** les skills locaux, en un seul exemplaire :
 `agent-config`, `api-design`, `autoship`, `commit`, `deployment`, `linear`,
@@ -74,8 +74,12 @@ gz orphelin. Les versions Claude, plus completes, ont ete retenues comme base.
 Allowlist Anthropic conservee : `claude-api`, `mcp-builder`,
 `webapp-testing`, `doc-coauthoring`, `docx`, `pdf`, `pptx`, `xlsx`.
 
-Le submodule `upstreams/mattpocock-skills` suit `main`. Son manifest Claude est
-la seule liste des skills promus : aucun duplicat local ni allowlist parallele.
+Le submodule `upstreams/mattpocock-skills` suit `main`. Aucun duplicat local
+n'est maintenu : les deux listes pointent vers le submodule. Le manifest Claude
+fournit les skills promus par l'amont; `upstreams/mattpocock-extra-skills.txt`
+nomme ceux utilises hors des buckets promus (`misc/`, `in-progress/`), que le
+manifest ne peut pas exprimer. Un chemin absent en amont fait echouer
+l'installation.
 
 ### Codex
 
@@ -83,6 +87,7 @@ la seule liste des skills promus : aucun duplicat local ni allowlist parallele.
 | --------------------- | ------------------------------ | --------------------------------- | ------------------------------------------------------------------- |
 | instructions          | `~/.codex/AGENTS.md`           | copie                             | rendu compose avec bandeau genere                                   |
 | `config.toml`         | `~/.codex/config.toml`         | copie + reinjection `hooks.state` | conserver la fusion ciblee Linux; Windows reste app-owned/seed-only |
+| MCP natifs            | `~/.codex/config.toml`         | Playwright, Linear, Unity         | Linear via HTTP OAuth; Unity desactive hors session editeur         |
 | hooks                 | `~/.codex/hooks.json`          | copie                             | reprendre; commandes vers `~/.codex/scripts`                        |
 | scripts/assets/agents | `~/.codex/*`                   | liens de dossier                  | reprendre, asset source depuis `shared/assets`                      |
 | rules                 | `~/.codex/rules/default.rules` | copie                             | reprendre                                                           |
