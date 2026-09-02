@@ -18,7 +18,11 @@ while IFS= read -r file; do
       command -v rustfmt >/dev/null || continue
       rustfmt --edition 2021 "$file"
       ;;
-    ts|tsx|js|jsx|json|css|html|md|yaml|yml)
+    ts|tsx|js|jsx|json|jsonc|css)
+      command -v biome >/dev/null || continue
+      biome format --write "$file" >/dev/null 2>&1
+      ;;
+    html|md|yaml|yml)
       command -v prettier >/dev/null || continue
       prettier --write --log-level silent "$file"
       ;;

@@ -26,6 +26,8 @@ assert_link_to \
 
 profile_hash="$(sha256sum "$HOME/.profile.local" | awk '{print $1}')"
 "$TEST_ROOT/install.sh" --only opencode >/dev/null
+# Formateurs natifs actives : forme objet, la seule que 1.3.13 accepte.
+jq -e '.formatter | type == "object"' "$HOME/.config/opencode/opencode.json" >/dev/null
 [ "$profile_hash" = "$(sha256sum "$HOME/.profile.local" | awk '{print $1}')" ]
 
 cat >"$HOME/.profile.local" <<'EOF'

@@ -175,7 +175,7 @@ pattern = "Bash(prisma reset *)"
 # (un champ en plus fait échouer le chargement de toute la config)
 # ---------------------------------------------------------------------------
 
-# Formatage automatique après écriture/édition (ruff, rustfmt, prettier)
+# Formatage automatique après écriture/édition (ruff, rustfmt, biome, prettier)
 [[hooks]]
 event = "PostToolUse"
 matcher = "Write|Edit"

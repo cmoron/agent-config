@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "formatter": {},
   "model": "ollama/gemma4",
   "provider": {
     "ollama": {

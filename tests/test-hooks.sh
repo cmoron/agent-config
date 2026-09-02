@@ -38,6 +38,23 @@ jq -e '
   exit 1
 }
 
+# JS/TS/JSON/CSS passent par Biome; prettier ne garde que html/md/yaml.
+if command -v biome >/dev/null; then
+  format_dir="$(mktemp -d)"
+  format_ts="$format_dir/format.ts"
+  for harness in claude kimi; do
+    printf 'const a = {b:1}\n' >"$format_ts"
+    printf '{"tool_input":{"file_path":"%s"}}' "$format_ts" \
+      | "$ROOT/harnesses/$harness/scripts/format-on-save.sh" >/dev/null
+    grep -q '^const a = { b: 1 };$' "$format_ts"
+  done
+  printf 'const a = {b:1}\n' >"$format_ts"
+  printf '{"tool_input":{"command":"*** Begin Patch\\n*** Update File: %s\\n*** End Patch"}}' "$format_ts" \
+    | "$CODEX_HARNESS/scripts/format-on-save.sh" >/dev/null
+  grep -q '^const a = { b: 1 };$' "$format_ts"
+  rm -rf "$format_dir"
+fi
+
 jq -e '
   [.hooks[][]?.hooks[]?.command? // empty]
   | all(contains("$HOME/src/claude-config") | not)

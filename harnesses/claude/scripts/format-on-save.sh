@@ -28,10 +28,10 @@ case "$EXT" in
   rs)
     rustfmt --edition 2021 "$FILE" 2>/dev/null || true
     ;;
-  ts|tsx|js|jsx)
-    prettier --write --log-level silent "$FILE" 2>/dev/null || true
+  ts|tsx|js|jsx|json|jsonc|css)
+    biome format --write "$FILE" >/dev/null 2>&1 || true
     ;;
-  json|css|html|md|yaml|yml)
+  html|md|yaml|yml)
     prettier --write --log-level silent "$FILE" 2>/dev/null || true
     ;;
 esac

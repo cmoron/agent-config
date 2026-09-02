@@ -22,7 +22,7 @@ bun build
 
 1. Types stricts — `strict: true` dans `tsconfig.json`, pas d'`any` implicite
 2. Gestion d'erreurs explicite — pas de catch silencieux
-3. `prettier` pour le format (auto via hooks, ne pas relancer à la main)
+3. Biome pour le lint et le format (format auto via hooks, ne pas relancer à la main)
 
 ## Règles absolues
 

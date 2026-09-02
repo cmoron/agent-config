@@ -118,6 +118,10 @@ preserve et sa sauvegarde reste hors Git dans `~/.config/agent-config/backups`.
 Ouvrir un nouveau shell (ou sourcer `~/.profile.local`) apres la premiere
 installation pour que le processus OpenCode herite de la variable.
 
+`opencode.json` declare `"formatter": {}` : la forme objet active les formateurs
+natifs (prettier, Biome, ruff, gofmt...) selon ce que le projet contient, et reste
+acceptee par OpenCode 1.3.13, qui refuse le booleen `true` du schema recent.
+
 ## Dependances externes
 
 Deux submodules suivent explicitement leur branche `main` :
