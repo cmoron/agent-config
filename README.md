@@ -3,9 +3,10 @@
 Configuration personnelle multi-harness pour Claude Code, Codex, Kimi Code et
 OpenCode.
 
-Le depot est en cours de migration. Les anciens depots restent autoritatifs
-tant que la bascule reelle n'a pas ete explicitement validee. Les premiers lots
-sont verifies uniquement sous homes temporaires.
+La bascule est faite : ce depot est la source declarative unique. Les anciens
+depots `claude-config`, `codex-config` et `kimi-config` sont geles derriere la
+garde legacy et ne sont plus autoritatifs; leur archivage attend une validation
+explicite.
 
 ## Principes
 
@@ -42,9 +43,10 @@ git submodule update --init --recursive
 uv run scripts/update_upstreams.py --no-install
 ```
 
-## Etat attendu
+## Deploiement
 
-Quand la migration sera terminee :
+Les tests s'executent sous des homes temporaires; seul `./install.sh` touche
+les homes reels :
 
 ```bash
 ./install.sh --dry-run
@@ -53,24 +55,17 @@ Quand la migration sera terminee :
 ./install.sh
 ```
 
-Le deploiement reel restera protege par une validation humaine distincte.
+Un deploiement reel se lance explicitement; il n'est jamais un effet de bord
+des tests.
 
 ## Bascule et rollback
 
-La bascule n'est pas activee par l'installation. Avant le premier deploiement
-reel, ajouter cette garde, encore inactive, juste apres `set -euo pipefail`
-dans les `install.sh` et `update.sh` historiques :
+La bascule est active : le marqueur `~/.config/agent-config/active` rend
+inoperants les `install.sh` et `update.sh` historiques, qui sourcent cette garde
+juste apres `set -euo pipefail` :
 
 ```bash
 source "$HOME/src/agent-config/scripts/legacy-installer-guard.sh" || exit $?
-```
-
-Apres validation du diff et des sauvegardes, la sequence de bascule est :
-
-```bash
-scripts/cutover-marker.sh activate
-./install.sh
-./install.sh --check
 ```
 
 La premiere etape d'un rollback est toujours de reactiver les anciens
@@ -80,9 +75,8 @@ installateurs, avant toute restauration :
 scripts/cutover-marker.sh deactivate
 ```
 
-Le marqueur vit sous `~/.config/agent-config/active`. Cette preparation ne
-modifie ni les anciens depots ni les homes tant que ces commandes ne sont pas
-executees explicitement.
+Pour rebasculer ensuite : `scripts/cutover-marker.sh activate`, `./install.sh`,
+puis `./install.sh --check`.
 
 ## Contrats de deploiement
 

@@ -1,13 +1,14 @@
 # agent-config
 
-Ce depot est la future source declarative unique des configurations Claude
+Ce depot est la source declarative unique des configurations Claude
 Code, Codex, Kimi Code et OpenCode de Cyril.
 
 ## Regles projet
 
 - Ne jamais modifier les homes runtime pour implementer une fonctionnalite;
   travailler dans ce depot puis deployer avec `install.sh`.
-- Avant la bascule reelle, utiliser uniquement des homes temporaires.
+- Les tests s'executent sous des homes temporaires; seul `./install.sh` touche
+  les homes reels.
 - Conserver les differences propres aux harnesses dans `harnesses/`.
 - Ne promouvoir dans `shared/` qu'un artefact dont tout l'arbre est portable et
   semantiquement identique.
@@ -20,7 +21,7 @@ Code, Codex, Kimi Code et OpenCode de Cyril.
   `docs/deployment-inventory.md`.
 - La cible Codex Windows contient de vrais fichiers et preserve son
   `config.toml` existant.
-- Aucun deploiement reel ni archivage legacy sans validation explicite.
+- Aucun archivage des depots legacy sans validation explicite.
 
 ## Verification minimale
 
