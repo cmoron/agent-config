@@ -29,6 +29,7 @@ tests=(
   test-hooks.sh
   test-claude-extras.sh
   test-codex-plugins.sh
+  test-codex-profiles.sh
   test-update.sh
   test-cutover-guard.sh
   test-opencode.sh

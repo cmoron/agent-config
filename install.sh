@@ -259,11 +259,12 @@ validate_harness_sources() {
       }
       ;;
     codex)
-      source="$ROOT/harnesses/codex/config.toml"
-      toml_is_valid "$source" || {
-        printf 'invalid source TOML: %s\n' "$source" >&2
-        return 1
-      }
+      for source in "$ROOT/harnesses/codex/config.toml" "$ROOT/harnesses/codex/"*.config.toml; do
+        toml_is_valid "$source" || {
+          printf 'invalid source TOML: %s\n' "$source" >&2
+          return 1
+        }
+      done
       source="$ROOT/harnesses/codex/hooks.json"
       json_is_valid "$source" || {
         printf 'invalid source JSON: %s\n' "$source" >&2
@@ -471,14 +472,23 @@ deploy_copy_file() {
   esac
 }
 
-# Applications rewrite the files they own in their own key order. Comparing an
-# app-owned JSON byte-for-byte against a `jq -S` rendering reports drift forever.
+# Applications rewrite key order and formatting in app-owned JSON/TOML.
+# Compare values so equivalent rewrites do not report drift forever.
 rendered_matches() {
   local rendered="$1"
   local target="$2"
 
   case "$3" in
     json) jq -S . "$target" 2>/dev/null | cmp -s "$rendered" - ;;
+    toml)
+      "$PYTHON" - "$rendered" "$target" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as rendered, open(sys.argv[2], "rb") as target:
+    sys.exit(tomllib.load(rendered) != tomllib.load(target))
+PY
+      ;;
     *) cmp -s "$rendered" "$target" ;;
   esac
 }
@@ -694,6 +704,7 @@ deploy_named_files() {
 deploy_harness_config() {
   local harness="$1"
   local rendered
+  local source
 
   case "$harness" in
     claude)
@@ -710,6 +721,9 @@ deploy_harness_config() {
       rendered="$(render_temp_for "$CODEX_DIR/config.toml")"
       render_codex_config "$rendered"
       deploy_rendered_file codex "$rendered" "$CODEX_DIR/config.toml" "$CODEX_DIR" 600
+      for source in "$ROOT/harnesses/codex/"*.config.toml; do
+        deploy_copy_file codex "$source" "$CODEX_DIR/${source##*/}" "$CODEX_DIR" 600
+      done
       deploy_copy_file codex "$ROOT/harnesses/codex/hooks.json" "$CODEX_DIR/hooks.json" "$CODEX_DIR" 644
       deploy_copy_file codex "$ROOT/harnesses/codex/rules/default.rules" "$CODEX_DIR/rules/default.rules" "$CODEX_DIR" 644
       deploy_link codex "$ROOT/harnesses/codex/scripts" "$CODEX_DIR/scripts" "$CODEX_DIR"
@@ -719,7 +733,7 @@ deploy_harness_config() {
     kimi)
       rendered="$(render_temp_for "$KIMI_DIR/config.toml")"
       render_kimi_config "$rendered"
-      deploy_rendered_file kimi "$rendered" "$KIMI_DIR/config.toml" "$KIMI_DIR" 600
+      deploy_rendered_file kimi "$rendered" "$KIMI_DIR/config.toml" "$KIMI_DIR" 600 toml
       deploy_copy_file kimi "$ROOT/harnesses/kimi/tui.toml" "$KIMI_DIR/tui.toml" "$KIMI_DIR" 644
       deploy_copy_file kimi "$ROOT/harnesses/kimi/mcp.json" "$KIMI_DIR/mcp.json" "$KIMI_DIR" 600
       deploy_link kimi "$ROOT/harnesses/kimi/scripts" "$KIMI_DIR/scripts" "$KIMI_DIR"
@@ -1237,6 +1251,9 @@ deploy_windows_core() {
   WINDOWS_MANAGED_PATHS=()
   deploy_instructions_windows
   deploy_seed_file windows "$ROOT/harnesses/codex/config.toml" "$WINDOWS_CODEX_DIR/config.toml" "$WINDOWS_CODEX_DIR" 600
+  for source in "$ROOT/harnesses/codex/"*.config.toml; do
+    deploy_windows_file "$source" "${source##*/}" 600
+  done
   deploy_windows_file "$ROOT/harnesses/codex/hooks.json" hooks.json 644
   deploy_windows_file "$ROOT/harnesses/codex/rules/default.rules" rules/default.rules 644
   deploy_windows_tree "$ROOT/harnesses/codex/scripts" scripts

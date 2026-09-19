@@ -83,21 +83,36 @@ l'installation.
 
 ### Codex
 
-| Artefact actuel       | Cible runtime                  | Type actuel                       | Decision cible                                                      |
-| --------------------- | ------------------------------ | --------------------------------- | ------------------------------------------------------------------- |
-| instructions          | `~/.codex/AGENTS.md`           | copie                             | rendu compose avec bandeau genere                                   |
-| `config.toml`         | `~/.codex/config.toml`         | copie + reinjection `hooks.state` | conserver la fusion ciblee Linux; Windows reste app-owned/seed-only |
-| MCP natifs            | `~/.codex/config.toml`         | Playwright, Linear, Unity         | Linear via HTTP OAuth; Unity desactive hors session editeur         |
-| hooks                 | `~/.codex/hooks.json`          | copie                             | reprendre; commandes vers `~/.codex/scripts`                        |
-| scripts/assets/agents | `~/.codex/*`                   | liens de dossier                  | reprendre, asset source depuis `shared/assets`                      |
-| rules                 | `~/.codex/rules/default.rules` | copie                             | reprendre                                                           |
-| skills specifiques    | `~/.codex/skills`              | liens par skill                   | vide : Codex lit le hub `~/.agents/skills`                          |
-| plugins/marketplaces  | bootstrap CLI                  | etat applicatif                   | conserver le bootstrap Codex natif; ne pas partager                 |
-| copie Windows         | `/mnt/c/Users/cyril/.codex`    | fichiers reels + manifeste        | reprendre; ne jamais ecraser un `config.toml` existant              |
+| Artefact actuel       | Cible runtime                                | Type actuel                       | Decision cible                                                                                                                       |
+| --------------------- | -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| instructions          | `~/.codex/AGENTS.md`                         | copie                             | rendu compose avec bandeau genere                                                                                                    |
+| `config.toml`         | `~/.codex/config.toml`                       | copie + reinjection `hooks.state` | conserver la fusion ciblee Linux; Windows reste app-owned/seed-only                                                                  |
+| profils alternatifs   | `~/.codex/{terra,luna,sol-high}.config.toml` | copies `0600`                     | sources `harnesses/codex/*.config.toml`; copies reelles Windows suivies par le manifeste, configuration principale Windows preservee |
+| MCP natifs            | `~/.codex/config.toml`                       | Playwright, Linear, Unity         | Linear via HTTP OAuth; Unity desactive hors session editeur                                                                          |
+| hooks                 | `~/.codex/hooks.json`                        | copie                             | reprendre; commandes vers `~/.codex/scripts`                                                                                         |
+| scripts/assets/agents | `~/.codex/*`                                 | liens de dossier                  | reprendre, asset source depuis `shared/assets`                                                                                       |
+| rules                 | `~/.codex/rules/default.rules`               | copie                             | reprendre                                                                                                                            |
+| skills specifiques    | `~/.codex/skills`                            | liens par skill                   | vide : Codex lit le hub `~/.agents/skills`                                                                                           |
+| plugins/marketplaces  | bootstrap CLI                                | etat applicatif                   | conserver le bootstrap Codex natif; ne pas partager                                                                                  |
+| copie Windows         | `/mnt/c/Users/cyril/.codex`                  | fichiers reels + manifeste        | reprendre; ne jamais ecraser un `config.toml` existant                                                                               |
 
 La section projet de l'ancien `config.toml` qui nomme `codex-config` doit etre
 supprimee ou remplacee par `agent-config` apres classification; aucun ancien
 chemin de depot ne doit rester dans une sortie deployee.
+
+Depuis le 8 septembre 2026, les profils utilisent le format de Codex >= 0.134.
+Les sources TOML sont validees avant ecriture. Les fichiers Linux sont copies
+avec sauvegarde avant remplacement ; les autres noms de profils personnels
+ne sont pas purges. Windows reprend le mecanisme de copie/manifeste existant :
+sauvegarde d'un fichier tiers avant sa premiere prise en charge, puis remplacement
+des fichiers deja geres. Le fichier principal Windows reste seed-only, meme s'il
+contient des tables legacy a migrer separement. Le test natif utilise la CLI
+reelle sur les trois profils, sans requete a un modele.
+
+Sol xhigh reste le defaut declare ; un choix de modele en session est volontaire,
+pas une demande de changer ce defaut. Les versions de plugins distants et les
+modeles effectifs sont releves pour les comparaisons de comportement selon
+[la procedure de validation](configuration-validation.md).
 
 ### Kimi Code
 
@@ -111,6 +126,10 @@ chemin de depot ne doit rester dans une sortie deployee.
 | asset audio        | `~/src/kimi-config/assets`                 | chemin source en dur dans le script | deployer sous `~/.kimi-code/assets`; script sans ancien chemin source                                                        |
 | skills specifiques | `~/.kimi-code/skills`                      | liens par skill                     | vide : Kimi lit le hub `~/.agents/skills`                                                                                    |
 | credentials OAuth  | `~/.kimi-code/credentials`                 | app-owned                           | ignorer strictement                                                                                                          |
+
+Le rendu de `config.toml` est compare semantiquement via `tomllib` depuis le
+8 septembre 2026. Une annotation ou une mise en forme differente avec les memes
+valeurs n'est pas une derive ; les valeurs gerees restent imposees par la fusion.
 
 ### OpenCode
 

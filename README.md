@@ -20,6 +20,8 @@ explicite.
 La reference operationnelle et les archives de conception vivent dans :
 
 - `docs/deployment-inventory.md` pour l'inventaire courant;
+- `docs/configuration-validation.md` pour les controles CLI et les comparaisons
+  de comportement apres changement de modele, de skill ou de plugin;
 - `docs/superpowers/plans/2026-08-15-agent-config-consolidation.md` pour le
   plan initial, desormais historique;
 - `docs/reviews/2026-08-15-plan-review-claude.md` pour la review historique de
@@ -106,18 +108,19 @@ puis `./install.sh --check`.
 
 ## Contrats de deploiement
 
-| Surface                                 | Strategie                                                 | Proprietaire                                       |
-| --------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| Instructions globales                   | rendu `common + overlay`, copie                           | source                                             |
-| Skills Linux/WSL                        | liens par skill                                           | source                                             |
-| Skills Codex Windows                    | copies reelles                                            | source                                             |
-| Claude `settings.json`                  | fusion JSON                                               | cles connues source, cles inconnues runtime        |
-| Codex `config.toml` Linux               | copie + preservation de `[hooks.state]` et `[projects.*]` | source + trust runtime                             |
-| Codex `config.toml` Windows             | seed-only                                                 | application                                        |
-| Kimi `config.toml`                      | fusion TOML ciblee                                        | permissions/hooks source, modele/providers runtime |
-| OpenCode `opencode.json`                | copie mode `0600`                                         | source                                             |
-| OpenCode `~/.profile.local`             | bloc d'environnement fusionne                             | bloc source, reste runtime                         |
-| Credentials, sessions, caches, memoires | ignore                                                    | application                                        |
+| Surface                                 | Strategie                                                 | Proprietaire                                        |
+| --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
+| Instructions globales                   | rendu `common + overlay`, copie                           | source                                              |
+| Skills Linux/WSL                        | liens par skill                                           | source                                              |
+| Skills Codex Windows                    | copies reelles                                            | source                                              |
+| Claude `settings.json`                  | fusion JSON                                               | cles connues source, cles inconnues runtime         |
+| Codex `config.toml` Linux               | copie + preservation de `[hooks.state]` et `[projects.*]` | source + trust runtime                              |
+| Codex `config.toml` Windows             | seed-only                                                 | application                                         |
+| Codex `terra/luna/sol-high.config.toml` | copies reelles Linux et Windows                           | source, fichiers personnels d'autres noms preserves |
+| Kimi `config.toml`                      | fusion TOML ciblee                                        | permissions/hooks source, modele/providers runtime  |
+| OpenCode `opencode.json`                | copie mode `0600`                                         | source                                              |
+| OpenCode `~/.profile.local`             | bloc d'environnement fusionne                             | bloc source, reste runtime                          |
+| Credentials, sessions, caches, memoires | ignore                                                    | application                                         |
 
 Pour Claude, `permissions`, `model`, `hooks`, `statusLine`, `enabledPlugins` et
 `extraKnownMarketplaces` sont source-owned. Une cle top-level inconnue est
@@ -129,6 +132,21 @@ Pour Kimi, `default_permission_mode`, `merge_all_available_skills`,
 soient charges sans agreger les repertoires Claude/Codex. `default_model`,
 providers, modeles et sections runtime restent ceux du fichier deployee
 lorsqu'il existe. Le fichier source sert de seed pour une premiere installation.
+La comparaison TOML est semantique : commentaires et mise en forme runtime ne
+declenchent pas de reecriture lorsque les valeurs sont identiques.
+
+Codex conserve Sol xhigh par defaut. Le modele choisi a la volee pour une tache
+prime sur ce defaut. Les profils alternatifs s'utilisent avec
+`codex --profile terra`, `codex --profile luna` et `codex --profile sol-high`.
+Depuis Codex 0.134, chaque profil est un fichier `<nom>.config.toml` voisin du
+fichier principal, sans table `[profiles.*]`. `tests/test-codex-profiles.sh`
+verifie leur deploiement et leur acceptation par la CLI installee, sous home
+temporaire sans appel de modele ; son absence produit un SKIP explicite.
+
+Le `config.toml` Windows existant reste intact. S'il contient encore des tables
+de profils legacy, leur migration doit etre faite dans cette configuration
+app-owned avant d'utiliser les profils ; ajouter les nouveaux fichiers ne suffit
+pas a rendre ces anciennes tables compatibles.
 
 OpenCode 1.3.13 decouvre sinon tous les skills Claude-only. Le bloc gere dans
 `~/.profile.local` exporte `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`; comme cette

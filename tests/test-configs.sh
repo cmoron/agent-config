@@ -155,6 +155,12 @@ fi
 uv run python -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' \
   "$HOME/.kimi-code/config.toml"
 [ ! -L "$HOME/.kimi-code/config.toml" ]
+# Comments/formatting in app-owned TOML are not configuration drift.
+printf '\n# Runtime annotation in the last managed section.\n' >>"$HOME/.kimi-code/config.toml"
+kimi_hash="$(sha256sum <"$HOME/.kimi-code/config.toml")"
+"$TEST_ROOT/install.sh" --only kimi --check >/dev/null
+"$TEST_ROOT/install.sh" --only kimi >/dev/null
+[ "$kimi_hash" = "$(sha256sum <"$HOME/.kimi-code/config.toml")" ]
 assert_file "$HOME/.kimi-code/tui.toml"
 assert_file "$HOME/.kimi-code/mcp.json"
 assert_link_to "$HOME/.kimi-code/scripts" "$TEST_ROOT/harnesses/kimi/scripts"
