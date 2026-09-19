@@ -4,8 +4,8 @@
 
 - Pour une tache M qui necessite un arbitrage, utiliser le mode Plan puis
   executer inline apres validation.
-- Pour une tache L+, utiliser `/goal` ou les sous-agents seulement apres
-  chiffrage. Sous huit heures, rester inline par defaut.
+- Pour une tache L+, suivre le Workflow commun et chiffrer la delegation.
+  Utiliser seulement les capacites exposees; `/goal` sur demande explicite.
 - Le modele principal garde architecture, arbitrages et debug difficile.
   Utiliser `explore` pour la lecture, ou `coder` sur le modele secondaire pour
   un travail mecanique lorsqu'il est configure.
@@ -14,15 +14,15 @@
 
 ### Outils
 
-| Besoin | Preference | Fallback |
-| --- | --- | --- |
-| Recherche contenu | `rg` | Grep integre |
-| Recherche structure | `ast-grep` / `sg` | lecture ciblee |
-| Recherche fichiers | `fd` | Glob integre |
-| Gros fichier inconnu | sous-agent `explore` | lecture par sections |
-| Web | WebSearch / FetchURL | source officielle directe |
-| JSON/YAML | `jq` / `yq` | parseur structure |
-| Sortie verbeuse | `rtk` explicite | commande directe |
+| Besoin               | Preference           | Fallback                  |
+| -------------------- | -------------------- | ------------------------- |
+| Recherche contenu    | `rg`                 | Grep integre              |
+| Recherche structure  | `ast-grep` / `sg`    | lecture ciblee            |
+| Recherche fichiers   | `fd`                 | Glob integre              |
+| Gros fichier inconnu | sous-agent `explore` | lecture par sections      |
+| Web                  | WebSearch / FetchURL | source officielle directe |
+| JSON/YAML            | `jq` / `yq`          | parseur structure         |
+| Sortie verbeuse      | `rtk` explicite      | commande directe          |
 
 ### RTK
 

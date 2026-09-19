@@ -68,7 +68,9 @@ for harness in claude codex kimi opencode; do
     local_skill_roots+=("$ROOT/harnesses/$harness/skills")
   fi
 done
-uv run "$ROOT/tests/validate-skills.py" "${local_skill_roots[@]}"
+if [ "${#local_skill_roots[@]}" -gt 0 ]; then
+  uv run "$ROOT/tests/validate-skills.py" "${local_skill_roots[@]}"
+fi
 
 anthropic_skills=(
   claude-api

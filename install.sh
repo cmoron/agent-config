@@ -17,6 +17,7 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE=apply
 ONLY=""
+INSTRUCTIONS_ONLY=0
 CHECK_FAILED=0
 BACKUP_STAMP="${AGENT_CONFIG_BACKUP_STAMP:-$(date +%Y%m%d-%H%M%S-%N)-$$}"
 
@@ -64,9 +65,10 @@ WINDOWS_MANAGED_PATHS=()
 
 usage() {
   cat <<'EOF'
-Usage: ./install.sh [--only claude|codex|kimi|opencode] [--check|--dry-run]
+Usage: ./install.sh [--only claude|codex|kimi|opencode] [--instructions-only] [--check|--dry-run]
 
   --only NAME  Limit deployment or checks to one harness.
+  --instructions-only  Render instructions only; preserve configs, skills and plugins.
   --check      Report drift without changing files.
   --dry-run    Print planned changes without changing files.
 EOF
@@ -96,6 +98,10 @@ while [ "$#" -gt 0 ]; do
         exit 2
       }
       MODE=dry-run
+      shift
+      ;;
+    --instructions-only)
+      INSTRUCTIONS_ONLY=1
       shift
       ;;
     -h|--help)
@@ -1390,8 +1396,20 @@ check_harness_runtime() {
   esac
 }
 
-MATT_SKILL_ENTRIES="$(load_matt_skill_entries)"
 mapfile -t HARNESSES < <(selected_harnesses)
+if [ "$INSTRUCTIONS_ONLY" -eq 1 ]; then
+  for harness in "${HARNESSES[@]}"; do
+    deploy_instructions "$harness"
+    if [ "$harness" = codex ] && [ -n "$WINDOWS_CODEX_DIR" ]; then
+      deploy_instructions_windows
+    fi
+  done
+  # Do not reconcile the Windows manifest: it also owns non-instruction files.
+  [ "$CHECK_FAILED" -eq 0 ] || exit 1
+  exit 0
+fi
+
+MATT_SKILL_ENTRIES="$(load_matt_skill_entries)"
 for harness in "${HARNESSES[@]}"; do
   check_skill_collisions "$harness"
   validate_harness_sources "$harness"

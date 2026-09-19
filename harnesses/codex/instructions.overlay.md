@@ -14,8 +14,8 @@
 
 ### Delegation
 
-- XS : direct. Une S bornee et non critique peut etre confiee a `worker` si le
-  brief suffit.
+- Suivre le Workflow commun pour choisir production inline ou delegation.
+  `worker` prend une implementation bornee lorsque la delegation est retenue.
 - Une implementation critique reste dans l'agent principal ou utilise
   `critical`; une exploration read-only bornee utilise `explore`.
 - Ne paralleliser que des taches independantes et ne jamais faire modifier les

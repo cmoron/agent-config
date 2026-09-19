@@ -2,29 +2,26 @@
 
 ### Planification et delegation
 
-- Utiliser `superpowers:brainstorming` lorsqu'une tache M contient une vraie
-  decision de design; sinon rester inline.
-- Pour une tache L+, utiliser `superpowers:writing-plans`. Ne lancer
-  `superpowers:subagent-driven-development` qu'apres chiffrage et confirmation
-  explicite si l'estimation reste sous huit heures.
+- Suivre le parcours defini dans le Workflow commun; les plugins disponibles
+  fournissent ses procedures, sans ajouter une seconde orchestration.
 - Garder l'orchestration, les arbitrages et le debug difficile dans le modele
   principal. Deleguer le volume mecanique a Haiku, une implementation bien
   specifiee a Sonnet et un sous-probleme complexe a Opus. Fable est une escalade
   ponctuelle si Opus bloque.
-- XS et S restent inline; deterministic signifie script ou commande, sans
-  modele.
+- La production XS et S reste inline; une revue independante reste possible
+  selon le risque. Deterministe signifie script ou commande, sans modele.
 
 ### Outils
 
-| Besoin | Preference | Fallback |
-| --- | --- | --- |
-| Recherche contenu | `rg` | Grep integre |
-| Recherche structure | `ast-grep` / `sg` | lecture ciblee |
-| Recherche fichiers | `fd` | Glob integre |
-| Gros fichier inconnu | sous-agent `Explore` | lecture par sections |
-| Web | WebSearch | source officielle directe |
-| Documentation de bibliotheque | `context7` | WebSearch ciblee |
-| JSON/YAML | `jq` / `yq` | parseur structure |
+| Besoin                        | Preference           | Fallback                  |
+| ----------------------------- | -------------------- | ------------------------- |
+| Recherche contenu             | `rg`                 | Grep integre              |
+| Recherche structure           | `ast-grep` / `sg`    | lecture ciblee            |
+| Recherche fichiers            | `fd`                 | Glob integre              |
+| Gros fichier inconnu          | sous-agent `Explore` | lecture par sections      |
+| Web                           | WebSearch            | source officielle directe |
+| Documentation de bibliotheque | `context7`           | WebSearch ciblee          |
+| JSON/YAML                     | `jq` / `yq`          | parseur structure         |
 
 Une sortie tronquee ou accompagnee d'un avertissement ne prouve rien. Relancer
 avec la commande brute avant de conclure.
