@@ -15,7 +15,7 @@ pitfalls below first** — each one costs hours if ignored.
 ## The 6 pitfalls (know these BEFORE coding)
 
 1. **Physics is an EXTERNAL xdyn server, not a Gazebo plugin.** Gazebo's
-   `physics_engine_interface` is a *websocket client* that connects to an
+   `physics_engine_interface` is a _websocket client_ that connects to an
    `xdyn-for-cs` launched separately (one per vessel, on a TCP port: 12345,
    12346…). **`lotusim run` launches only `gz` — NOT xdyn.** With no xdyn server
    listening, a vessel spawns and renders but has **no dynamics**:
@@ -24,8 +24,8 @@ pitfalls below first** — each one costs hours if ignored.
 
 2. **Many models have NO `<visual>`** (collision only). Ships such as `wamv`,
    `dtmb_hull`, `lrauv` render in **Unity** (`render_plugin` → ROS2 → Unity
-   client), so in the **Gazebo GUI they are invisible** (toggle *Entity Tree →
-   right-click → View → Collisions* to see them). To display a vessel directly
+   client), so in the **Gazebo GUI they are invisible** (toggle _Entity Tree →
+   right-click → View → Collisions_ to see them). To display a vessel directly
    in gz, give it a `<visual>` — a legitimate LOTUSim pattern (cf. `fremm`,
    `commando`).
 
@@ -43,17 +43,18 @@ pitfalls below first** — each one costs hours if ignored.
 5. **Killing gz is two traps, not one.**
    **(a) Pattern matching kills the wrong thing.** `pkill -f "gz sim"` matches your
    own shell's command line → self-kill (exit ~144). The same holds for a `pgrep -f`
-   *guard inside a script*: it matches the ancestor shell that launched it, so
+   _guard inside a script_: it matches the ancestor shell that launched it, so
    "is one already running?" fires on nothing. Capture PIDs (`pid=$!`), use
    PID-based `pgrep -P`, or ask gz for the symptom instead of reading the process
    table: `gz topic -l | grep -q "^/world/<name>/"`.
    **(b) `lotusim run` spawns gz as a CHILD.** Killing `$!` kills the bash wrapper
-   and *orphans* gz — running `gz sim` directly, the two were the same process. An
+   and _orphans_ gz — running `gz sim` directly, the two were the same process. An
    orphan keeps publishing `/world/<name>/...`, so the next run's pose stream carries
    TWO vessels and any pose-based check believes whichever it sees first. Observed:
    a smoke gate returning PASS in 17 simulated seconds for a 170 s lap, betrayed by
    consecutive pose samples 14.6 m apart — impossible at a 0.01 s step. Kill the
    tree, deepest first, with -9 (gz ignores SIGTERM):
+
    ```bash
    kill_tree(){ local p; for p in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$p"; done
                 kill -9 "$1" 2>/dev/null; }
@@ -64,7 +65,7 @@ pitfalls below first** — each one costs hours if ignored.
    Thruster setpoints are **published** on the ROS2 topic
    `/<world>/vessel_cmd_array` (`lotusim_msgs/msg/VesselCmdArray`): each
    `VesselCmd.cmd_string` is a JSON `{"<thruster>(rpm)": <val>,
-   "<thruster>(P/D)": <val>}` that `physics_interface_plugin` forwards verbatim
+"<thruster>(P/D)": <val>}` that `physics_interface_plugin` forwards verbatim
    to xdyn. With no publisher → hardcoded default `<thruster>(rpm)=2.0` →
    near-zero thrust (warning `Wageningen … n too small`). The `waypoint_follower`
    emits status only: it is a separate **kinematic** mode, and **no world
@@ -111,7 +112,10 @@ vehicle is wired into a world via `<include>` + `<lotus_param>`
 **not** the core (cf. `references/architecture.md`).
 
 PR workflow (`CONTRIBUTING.md`): issue (label `new_model`) → announce yourself →
-fork → implement → test → PR referencing the issue. **License EPL-2.0**: never
+fork → implement → test → PR referencing the issue. **DCO obligatoire (depuis
+2026-08) sur tous les repos naval-group : chaque commit doit porter un
+`Signed-off-by` (`git commit -s`) — un commit non signé bloque le check de la
+PR.** **License EPL-2.0**: never
 vendor GPL assets (e.g. ArduPilot SITL_Models) or assets without redistribution
 rights (e.g. manufacturer CAD); re-author from public dimensions only.
 
