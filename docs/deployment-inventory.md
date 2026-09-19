@@ -128,6 +128,25 @@ n'est donc pas un prerequis. OpenCode 1.3.13 masque aussi le hub lorsque la
 compatibilite Claude est desactivee; le miroir natif est donc teste avec le
 binaire reel, pas deduit de la documentation.
 
+## Workflow global (2026-09-19)
+
+Le rendu `common + overlay` fournit aussi les valeurs tracker/labels/domaine
+Pocock et la selection des parcours Pocock/Superpowers/autoship a chaque harness.
+Aucun fichier `docs/agents/` n'est cree dans les depots consommateurs; leurs
+surcharges existantes sont lues par l'agent. Les submodules restent intacts.
+
+`install.sh --instructions-only` reutilise le rendu et les sauvegardes natifs,
+y compris le vrai fichier Codex Windows; il laisse configs, skills, plugins et
+manifeste Windows intacts. `--check` dans ce mode couvre uniquement ces rendus.
+Les tests sous home temporaire verifient la preservation de la config runtime.
+
+`autoship/scripts/check-candidate.sh` fait partie de l'arbre du skill partage :
+liens sur macOS/WSL, copie reelle avec le skill sous Codex Windows. Aucun nouvel
+agent, plugin, MCP ou hook. Le garde est en lecture seule et se lance via bash.
+Les tests de candidat couvrent references invalides, arbre sale, fichiers
+nouveaux/indexes, candidat obsolete et diff vide. Les tests de rendu couvrent
+le contrat global; ils ne remplacent pas une evaluation sur les vrais modeles.
+
 ## Hors perimetre de gestion
 
 Les chemins suivants sont app-owned et ne doivent jamais etre purges, copies

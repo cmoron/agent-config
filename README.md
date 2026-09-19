@@ -25,6 +25,26 @@ La reference operationnelle et les archives de conception vivent dans :
 - `docs/reviews/2026-08-15-plan-review-claude.md` pour la review historique de
   ce plan.
 
+## Workflow commun aux projets
+
+`instructions/common.md` fournit les conventions GitHub/Pocock sans setup
+obligatoire dans chaque depot : tracker GitHub, labels canoniques et lecture
+optionnelle du contexte domaine. Les fichiers `docs/agents/*.md` d'un projet
+surchargent ces valeurs; l'installation n'ecrit rien dans les projets.
+
+Le parcours borne utilise Pocock, les plans complexes Superpowers lorsqu'il
+est disponible. Chaque parcours garde son TDD et ses revues; les commandes
+Pocock manuelles restent manuelles. `autoship` orchestre une petite tache inline
+et une seule voie de revue amont, puis sa livraison explicitement autorisee.
+`frontend-design` reste la reference UI; aucun ajout d'Impeccable ou de reviewer.
+
+Toute revue sur HEAD porte sur un candidat commite, y compris dans `implement`.
+Le garde `shared/skills/autoship/scripts/check-candidate.sh` controle references,
+arbre propre et diff non vide; il ne certifie ni les tests ni le jugement d'une
+revue. `tests/test-review-candidate.sh` couvre les etats Git sous depot temporaire.
+Les tests de rendu couvrent la presence du contrat global pour les quatre
+harnesses; ils ne prouvent pas l'obeissance d'un modele aux instructions.
+
 ## Prerequis
 
 `install.sh` a besoin de `bash >= 4`, `python >= 3.11` (pour `tomllib`) et `jq`.
@@ -51,12 +71,18 @@ les homes reels :
 ```bash
 ./install.sh --dry-run
 ./install.sh --check
+./install.sh --instructions-only
 ./install.sh --only codex
 ./install.sh
 ```
 
 Un deploiement reel se lance explicitement; il n'est jamais un effet de bord
 des tests.
+
+`--instructions-only` applique uniquement `common + overlay`, avec sauvegardes,
+aux harnesses selectionnes (et au fichier Codex Windows si configure). Il se
+combine avec `--only`, `--dry-run` et `--check`; il preserve configs, plugins,
+skills et manifeste Windows. Son controle ne certifie que les instructions.
 
 ## Bascule et rollback
 

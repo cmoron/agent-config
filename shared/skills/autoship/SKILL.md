@@ -1,161 +1,107 @@
 ---
 name: autoship
-description: "Produit une petite feature/fix en autonomie totale — map, plan, build (TDD + review indépendante), spec-gate, vérif comportementale, doc, ship. Jamais bloquant : se termine toujours soit livré, soit en PR prête à reviser (atterrissage sûr si zone sensible DB/auth/CI-CD). À utiliser quand l'utilisateur demande explicitement autoship, une livraison autonome ou fire-and-forget, et qu'il juge le risque de régression faible."
+description: "Livrer une petite feature/fix en autonomie sur demande explicite : implementation, preuves sur un candidat Git, revue independante et livraison ou PR a relire. Utiliser pour autoship ou fire-and-forget, pas pour une implementation interactive ordinaire."
 ---
 
 # Autoship
 
-Production autonome d'une **petite feature ou fix à faible risque de régression**.
-Mode **fire-and-forget** : aucune pause pour validation humaine. En lançant autoship,
-l'utilisateur décide que le risque est acceptable — ce skill ne réarbitre pas ce jugement.
+L'utilisateur autorise l'execution autonome d'une petite tache et sa livraison
+dans le perimetre demande. Suivre le Workflow commun pour tracker, domaine et
+priorite des instructions. Une decision deja approuvee n'est pas redemandee.
+Une autorisation manquante ne s'invente pas : terminer localement avec un rapport.
+Pour un upstream tiers, appliquer `opensource-contributor` avant publication.
 
-L'argument est la description de la tâche. Sous Claude Code il arrive par `$ARGUMENTS`
-depuis la commande `/autoship` ; ailleurs, c'est la demande de l'utilisateur telle quelle.
+Utiliser les capacites effectivement exposees dans la session, quel que soit
+le harness. Claude fournit `/autoship`; ailleurs le nom du skill suffit.
+Une revue inline reste une auto-revue et n'autorise pas l'auto-merge.
 
-### Selon le harness
+## 0. Preflight
 
-Utiliser les facilités natives quand elles existent, sans jamais en dépendre :
+1. Lire instructions projet, demande originale, issue/spec et criteres
+   d'acceptation. Le contexte GitHub global suffit sans setup Pocock local.
+2. Identifier commandes de test, lint, typage et build du projet, CI requise,
+   cible de publication et deploiement, proprietaire du depot. Justifier les
+   controles non applicables; test introuvable = arret avant implementation.
+3. Examiner l'etat Git. Creer `autoship/<slug>` depuis la branche par defaut
+   a jour, dans un worktree isole si des changements etrangers sont presents.
+   Garder son SHA comme `base_commit` fixe pour le run.
+4. Fixer les interfaces de test depuis le brief et les conventions existantes.
+   Si une decision produit indispensable manque, rapport de blocage local.
 
-- **Claude Code** — commande `/autoship`, sous-agents pour la review indépendante.
-- **Codex** — suivre l'avancement avec le plan de tâche quand il est disponible ;
-  reviewer indépendant via les outils multi-agent seulement s'ils sont présents et
-  justifiés ; la notification de fin de tour vient de la config `notify`, ne pas
-  supposer de canal push dédié.
-- **Kimi, OpenCode** — pas de commande dédiée ni de sous-agent : invoquer le skill par
-  son nom et faire la review en passe fraîche inline.
+## 1. Comprendre et implementer
 
-Ne dispatcher un sous-agent que si le travail est assez volumineux pour amortir le coût
-et que le résultat est simple à vérifier.
+Tracer les chemins concernes et les tests. Plan court inline, puis Pocock `tdd`
+pour la boucle test rouge / implementation. Diagnostic via `diagnosing-bugs`
+si necessaire. Mettre a jour la documentation pertinente avant la revue.
 
-## Principe
+Autoship conduit un seul parcours inline pour cette petite tache; ne pas
+imbriquer `implement`, Superpowers SDD, `writing-plans` ou un menu de fin de
+branche. Si un plan complexe est necessaire, terminer avec le cadrage et la
+limite : ce skill n'est pas le moteur d'un grand chantier.
 
-Orchestrer les briques existantes, pas réécrire leur logique. Retries **bornés**
-(défaut 3) à chaque phase/boucle ; jamais de boucle infinie. Sur blocage dur : arrêt
-propre, état laissé sûr, rapport.
+## 2. Capturer et verifier
 
-**Jamais bloquant.** On lance et on part : autoship ne s'arrête jamais pour demander une
-décision. L'état terminal est toujours l'un de deux — **livré** (mergé + déployé + sain)
-ou **PR prête laissée pour revue** (verte, documentée, reviewée). Toute condition qui
-rendrait le merge auto risqué (zone sensible touchée, gate amont encore KO après retries,
-CI rouge après retries) **dégrade vers la PR-prête + rapport**, jamais vers une question.
+1. Formater, examiner diff, nouveaux fichiers et index; indexer seulement les
+   fichiers de la tache et committer localement. Aucun `git add -A` aveugle.
+   `candidate_commit` = SHA complet de HEAD; absence de diff = « aucun changement »,
+   jamais « revue reussie ».
+2. Depuis le depot cible, executer :
 
-## Phase 0 — Préflight (découverte + setup)
+   ```bash
+   bash <skill-dir>/scripts/check-candidate.sh <base_commit> <candidate_commit>
+   ```
 
-1. Résoudre les conventions du projet, dans l'ordre :
-   - `AGENTS.md` du projet, puis `CLAUDE.md` s'il est le seul fichier local
-     (commandes test/lint/build, cible deploy)
-   - skills `stack-*` et `deployment` applicables
-   - manifestes : `pyproject.toml` / `package.json` / `Cargo.toml`
-   - `.github/workflows/*` pour le workflow CI et la cible de déploiement
-2. Établir explicitement : commande de test, commande de lint, commande de build,
-   nom du workflow CI, cible de déploiement (staging/prod) si elle existe.
-3. Vérifier l'état git (working tree propre attendu) et créer la branche de travail
-   `autoship/<slug-de-la-tâche>` depuis la branche par défaut à jour.
-4. **Abort si la commande de test reste introuvable** : rien n'a été modifié → rapport
-   (cf. section Rapport) et fin.
+   Remplacer skill-dir par le dossier de ce skill. Le garde refuse references
+   invalides, HEAD different, arbre sale et diff vide. Il ne publie rien.
 
-Suivre la progression avec une entrée par phase, via le suivi de tâches natif du
-harness s'il en a un, sinon une liste tenue à la main.
+3. Executer explicitement les controles identifies au preflight. Pour chacun,
+   conserver commande, cwd, code retour et sortie utile avec le candidat :
+   `pass`, `fail`, `not_run` ou `not_applicable` motive. Un hook de confort ne
+   remplace aucun controle. Controle requis absent/non execute = non valide.
+4. Observer le comportement demande (test d'integration, application, endpoint
+   ou rendu UI selon la tache), sans effets de bord externes non autorises.
+5. Relancer le garde de candidat : un outil qui modifie les fichiers impose un
+   nouveau commit et de nouvelles preuves. Stocker les rapports hors du working
+   tree ou dans un emplacement ignore pour ne pas salir le candidat.
 
-## Phase 1 — Map
+## 3. Revue independante unique
 
-Comprendre le code pertinent à la tâche : zones impactées, contrats, tests existants,
-chemins d'exécution. Produire une compréhension **ciblée** en contexte, pas un dump de
-fichiers. Déléguer à un sous-agent d'exploration s'il en existe un (`Explore` sous
-Claude Code) ; sinon explorer inline.
+Si Superpowers `requesting-code-review` est disponible, reutiliser son template
+`code-reviewer.md` avec un agent generique frais. Sinon utiliser Pocock
+`code-review`, avec ses deux axes Standards/Spec et sa propre orchestration.
+Ne lancer qu'une de ces voies; ne pas ajouter un spec-gate apres une revue qui
+inclut deja la demande. Ne pas precharger un orchestrateur dans un reviewer.
 
-## Phase 2 — Plan
+Fournir : demande originale, criteres d'acceptation, conventions pertinentes,
+`base_commit`, `candidate_commit`, commandes/resultats de verification.
+Demander les constats et leurs preuves fichier/ligne, verdict et limites.
+Le reviewer n'edite pas le candidat; les entrees manquantes reviennent au parent.
+Le rapport de l'auteur ne remplace pas les exigences originales.
 
-Concevoir l'architecture de la solution, calibrée pour une petite feature/fix — via un
-skill de planification s'il est disponible (`superpowers:writing-plans` sous Claude Code).
-Le plan reste interne au run.
+En l'absence de procedure disponible ou de delegation, faire une auto-revue et
+la nommer. Enregistrer separement le mode (`independent`, `self_review`,
+`unavailable`) et le verdict (`pass`, `fail`, `unverified`). Seul
+`independent` + `pass` satisfait le prerequis d'auto-merge.
 
-## Phase 3 — Build loop (sous-agents)
+Corrections bornees a trois tours pour le candidat complet (tests, comportement,
+revue), sans boucles imbriquees. Chaque correction produit un nouveau candidat :
+reprendre la phase 2 puis la revue. Echec persistant : WIP ou PR a relire, jamais
+merge. Reexecuter le garde juste avant la publication.
 
-Par tâche → test d'abord (qui échoue), implémentation minimale, lint (via hooks, ne pas
-relancer manuellement), tests verts. Sous Claude Code, exécuter via
-`superpowers:subagent-driven-development` + `superpowers:test-driven-development` ;
-ailleurs, dérouler la même boucle inline avec le skill `tdd`. Retries bornés par tâche.
+## 4. Livrer
 
-Puis **review en boucle** sur le diff complet, par un reviewer **indépendant** (pas
-l'auteur) : bugs, régressions, erreurs de contrat, tests manquants, simplification.
-Sous Claude Code, `superpowers:requesting-code-review` →
-`superpowers:receiving-code-review` ; ailleurs, un sous-agent reviewer si le harness en
-offre un, sinon une passe fraîche inline. Appliquer les corrections puis re-review,
-jusqu'à clean ou borne. Finir par
-`/simplify` sur le diff final. La phase n'est validée que si **build vert + tests verts**.
+Suivre `references/ship.md` : PR et CI sur le meme candidat, puis auto-merge
+seulement si autorise, sans zone sensible, avec toutes les preuves valides.
+Sinon laisser une PR a relire; si publier n'est pas autorise, rester local.
+Les corrections CI et post-merge suivent les memes phases 2 et 3.
 
-Si après les retries le build/les tests ne passent pas → on ne peut pas atteindre une PR
-verte : commit du WIP sur la branche de travail + rapport.
+## Rapport
 
-## Phase 3bis — Spec-gate (a-t-on construit la _bonne_ chose ?)
+Rendre : tache, statut (`livre`, `PR a relire`, `WIP local`, `bloque post-merge`),
+base/candidat, commandes et resultats, mode/verdict de revue, limites,
+branche/PR et action humaine restante. Sans deploiement applicable, « livre »
+signifie merge et CI verte; ne pas inventer de healthcheck.
 
-Brique réutilisable. Invoquer le skill `code-review` sur l'**axe Spec**, en lui donnant la
-description de tâche reçue comme critères d'acceptation, sur le diff depuis le
-merge-base : le diff répond-il à la demande **et** aux edge cases évidents ? Évaluation
-par un agent **frais** (pas celui qui a codé).
-
-- Conforme → continuer.
-- Écart → rework borné puis ré-évaluation. Toujours KO → atterrissage **PR-prête**
-  (cf. Phase 5), raison « spec-gate : <écart> ».
-
-## Phase 3ter — Vérif comportementale (ça marche _vraiment_ ?)
-
-Brique réutilisable. « Tests verts » ≠ « la feature marche ». Observer le comportement
-réel attendu par la tâche : lancer l'app ou appeler l'endpoint (skill `run` sous Claude
-Code), `webapp-testing` Playwright si UI.
-
-- OK → continuer.
-- KO → rework borné puis re-vérif. Toujours KO → atterrissage **PR-prête**
-  (cf. Phase 5), raison « vérif comportementale : <symptôme> ».
-
-## Phase 4 — Doc
-
-Mettre à jour doc / README / changelog **au prorata du changement uniquement**. Pas de
-sur-documentation. Si rien ne le justifie, ne rien écrire.
-
-## Phase 5 — Ship (avec atterrissage selon le risque)
-
-Suivre `references/ship.md`. La chorégraphie choisit l'**atterrissage** selon les zones
-touchées par le diff :
-
-- **Auto** (rien de sensible, aucun gate amont dégradé) : commit → PR → CI → merge squash
-  → staging → prod → auto-revert si casse.
-- **PR-prête** (zone dimensionnante touchée — DB / auth-secrets / CI-CD-infra — ou gate
-  amont ayant dégradé) : commit → PR → CI verte, puis **stop avant merge/deploy** →
-  rapport « PR prête ». La taille du diff seule ne déclenche pas la PR-prête (on va au
-  bout) ; elle est juste signalée dans le rapport.
-
-## Phase 5bis — Auto-correction post-merge
-
-Atterrissage **auto** uniquement (il y a eu un merge réel). Déclenchée si, **après le merge
-sur main**, le CI sur main est rouge OU le healthcheck de déploiement est KO. Procédure détaillée dans `references/ship.md`. Fix-forward borné. Si épuisé et main/prod toujours cassé → **auto-revert** du merge
-(restaure le dernier état sain via PR de revert) plutôt que laisser prod cassé. Prod n'est
-laissé en l'état **que si le revert lui-même échoue** → stop + escalade.
-
-## Garde-fous (toutes phases)
-
-- Retries bornés (défaut 3) ; jamais de boucle infinie.
-- **Jamais de pause pour validation** (fire-and-forget) : toute impasse dégrade vers
-  PR-prête (verte) ou, si le build ne passe pas, WIP-branche + rapport — jamais une question.
-- Règles git absolues : pas de `--no-verify`, pas de force push, rebase/squash (historique
-  linéaire), Conventional Commits.
-- Sur abort : état laissé sûr et explicite (branche poussée / PR draft / point d'arrêt
-  nommé). Post-merge cassé → tenter le fix-forward puis l'auto-revert ; prod n'est laissé
-  cassé que si le revert échoue (escalade explicite).
-
-## Rapport final (systématique)
-
-À la fin du run (succès comme échec), produire un résumé structuré :
-
-- **Tâche** : la description fournie
-- **Statut** : livré / **PR prête à reviser** (zone sensible ou gate non franchi) / WIP (build KO) / bloqué post-merge
-- **Fait** : phases franchies, branche, PR (URL), commit(s) sur main
-- **Bloqué sur** : la cause précise s'il y a lieu
-- **Action manuelle requise** : ce que l'utilisateur doit faire, le cas échéant
-
-## Notification
-
-En fin de run, envoyer une notification push (succès / blocage) via le canal disponible
-(`PushNotification` si présent). Si aucun canal n'est configuré, dégrader silencieusement
-en simple message final.
+Les preuves de revue restent des jugements de modele. Le garde de candidat
+controle Git uniquement : ce n'est ni une sandbox ni le gate de livraison
+complet de l'issue #6. Les protections serveur et CI requises restent distinctes.

@@ -21,6 +21,7 @@ tests=(
   test-python.sh
   test-install.sh
   test-instructions.sh
+  test-review-candidate.sh
   test-configs.sh
   test-windows.sh
   test-safety.sh
