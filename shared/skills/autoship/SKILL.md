@@ -83,8 +83,8 @@ la nommer. Enregistrer separement le mode (`independent`, `self_review`,
 `unavailable`) et le verdict (`pass`, `fail`, `unverified`). Seul
 `independent` + `pass` satisfait le prerequis d'auto-merge.
 
-Corrections bornees a trois tours pour le candidat complet (tests, comportement,
-revue), sans boucles imbriquees. Chaque correction produit un nouveau candidat :
+Budget commun de trois corrections avant merge (tests, comportement, revue et
+CI compris), sans remise a zero entre phases. Chaque correction produit un nouveau candidat :
 reprendre la phase 2 puis la revue. Echec persistant : WIP ou PR a relire, jamais
 merge. Reexecuter le garde juste avant la publication.
 
@@ -93,7 +93,9 @@ merge. Reexecuter le garde juste avant la publication.
 Suivre `references/ship.md` : PR et CI sur le meme candidat, puis auto-merge
 seulement si autorise, sans zone sensible, avec toutes les preuves valides.
 Sinon laisser une PR a relire; si publier n'est pas autorise, rester local.
-Les corrections CI et post-merge suivent les memes phases 2 et 3.
+Les corrections CI suivent les memes phases 2 et 3 et consomment ce budget.
+Apres merge, les trois iterations de `ship.md` constituent un budget distinct :
+chaque iteration effectue une seule verification/revue, sans boucle interne.
 
 ## Rapport
 

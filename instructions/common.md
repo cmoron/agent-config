@@ -16,7 +16,7 @@ instructions specifiques du projet.
 
 Sur-processer une petite tache gaspille du temps et des tokens.
 
-- **XS** : modification directe, sans plan ni delegation.
+- **XS** : production directe, sans plan; revue selon le risque.
 - **S** : plan inline court, implementation, tests et commit.
 - **M** : cadrage inline avec au plus deux questions bloquantes, puis premier
   increment testable. Pas de spec fichier par defaut.

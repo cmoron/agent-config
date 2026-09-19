@@ -43,8 +43,9 @@ relire » (draft si non livrable), jamais annoncée conforme parce que la CI pas
    PR verte laissée pour revue, rapport « PR prête » (pas de merge).
 3. CI **rouge** → diagnostiquer via `gh run view <id> --log-failed`, corriger sur la
    branche, reprendre les phases 2 et 3 sur le nouveau commit, repush.
-   **Borné à 3 tentatives.** Un contrôle requis absent/pending n'est pas vert.
-4. Toujours rouge après 3 tentatives → **abort** : convertir la PR en draft
+   Consommer le budget commun de trois corrections avant merge, sans le
+   réinitialiser. Un contrôle requis absent/pending n'est pas vert.
+4. Budget épuisé et CI toujours rouge → **abort** : convertir la PR en draft
    (`gh pr ready --undo`), laisser branche + PR en place, rapport. Pas de merge.
 
 ## 3. Merge & surveillance
@@ -67,39 +68,47 @@ relire » (draft si non livrable), jamais annoncée conforme parce que la CI pas
      et **signaler dans le rapport** que le déploiement s'est fait sans gate staging
      (facteur de risque additionnel assumé par l'utilisateur en lançant autoship).
    - Le déploiement n'est validé que si le service répond.
-4. Main CI verte + healthcheck OK → **succès**, passer au rapport final.
+4. Main CI verte + healthcheck OK (ou déploiement non applicable) → **succès**.
 5. Main CI rouge OU healthcheck KO → section 4.
 
 ## 4. Auto-correction post-merge
 
 Boucle **bornée à 3 itérations** :
 
+Budget unique post-merge : les vérifications/revues de chaque itération ne
+relancent aucune boucle de correction interne. Depuis cette section, utiliser
+uniquement les étapes 1 à 3 de la section 3; un échec de surveillance revient
+à l'itération courante ci-dessous, jamais à une nouvelle invocation de section 4.
+
 1. Diagnostiquer : `gh run view <id> --log-failed` (CI main) ou les logs du déploiement /
    healthcheck.
 2. Créer une branche `autoship/<slug>-fix-<n>`, appliquer le fix (TDD si pertinent).
    Recapturer base/candidat et reprendre les phases 2 et 3; reclasser les zones
-   sensibles. Un fix qui ne satisfait plus l'atterrissage auto reste à relire.
+   sensibles. Un fix qui ne satisfait plus l'atterrissage auto reste à relire :
+   arrêter et signaler l'état du service ainsi que l'action humaine requise.
 3. Publier selon les sections 1 et 2 → `gh pr checks --watch`.
 4. CI verte et atterrissage auto → merge lié au SHA (section 3) → re-surveiller main + déploiement
    (section 3, étapes 2–3).
-5. Sain → **succès** (rapport). Toujours cassé → itération suivante.
+5. Sain → **succès** (rapport). Contrôles/revue/CI en échec ou service toujours
+   cassé → itération suivante dans le même budget; pas de merge sans preuves.
 
 **Fallback final** (3 itérations de fix-forward épuisées, main/prod toujours cassé) :
 **auto-revert** plutôt que laisser prod cassé.
 
 1. Identifier le(s) commit(s) de merge introduit(s) par ce run sur la branche par défaut.
 2. `git revert --no-edit <sha-merge>` (du plus récent au plus ancien si plusieurs) sur une
-   branche `autoship/<slug>-revert`. Le revert restaure le dernier état connu sain — il
+   branche `autoship/<slug>-revert`. Le revert vise le dernier état connu sain — il
    n'efface pas l'historique (compatible historique linéaire, pas de force push).
 3. Reprendre les phases 2 et 3 sur le revert, reclasser le risque puis publier
    selon les sections 1 et 2. Le revert doit rendre la CI verte; il ne répare
    pas nécessairement les données ou effets externes d'un déploiement.
-4. CI verte et atterrissage auto → merge lié au SHA (section 3) → re-surveiller main + redéployer
+4. CI verte et atterrissage auto → merge lié au SHA (section 3, étapes 1 à 3 seulement) → re-surveiller main + redéployer
    (section 3 : staging si présent, puis prod) → vérifier le healthcheck.
 5. Sain après revert → **succès dégradé** : la feature n'est PAS livrée mais prod est
    restaurée. Le rapport le dit explicitement (revert appliqué, raison, action manuelle =
    reprendre la feature plus tard).
 
-**Si le revert lui-même échoue** (CI du revert rouge, healthcheck toujours KO, ou conflit
+**Si le revert lui-même échoue ou exige une validation humaine** (revue indisponible,
+zone sensible, CI du revert rouge, healthcheck toujours KO, ou conflit
 de revert non trivial) : **stop + escalade**. La restauration n'est pas garantie —
 le rapport l'indique explicitement avec l'action manuelle urgente requise.
