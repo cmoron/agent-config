@@ -13,7 +13,8 @@ CLI : `typer` (Click + type hints) + `rich` (tables, progress, output stylisé) 
 1. Type hints complets — pas de `Any` sans justification, mypy strict mode
 2. Patterns async corrects — pas d'`asyncio.run()` dans une coroutine
 3. Pydantic v2 pour la validation — pas de dicts non typés en API
-4. `ruff format` + `ruff check` — zéro warning (formatage auto via hooks, ne pas relancer à la main)
+4. `ruff format` + `ruff check` — zéro warning. Le hook de formatage ne remplace
+   pas les contrôles du projet ; exécuter les commandes pertinentes sur le candidat final.
 
 ## Commandes
 

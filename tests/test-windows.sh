@@ -28,6 +28,16 @@ assert_not_exists "$AGENT_CONFIG_WINDOWS_CODEX_DIR/.codex-config-managed"
 assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/.agent-config-managed"
 grep -Fxq scripts "$AGENT_CONFIG_WINDOWS_CODEX_DIR/.agent-config-managed"
 grep -Fxq skills/api-design "$AGENT_CONFIG_WINDOWS_CODEX_DIR/.agent-config-managed"
+[ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/format-on-save.sh" ]
+[ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/protect-env.sh" ]
+[ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/notify-sound.sh" ]
+[ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/patch-files.sh" ]
+assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/format-on-save.sh"
+assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/protect-env.sh"
+assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/notify-sound.sh"
+assert_file "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/patch-files.sh"
+cmp "$TEST_ROOT/shared/scripts/notify-sound.sh" \
+  "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts/notify-sound.sh"
 [ ! -d "$AGENT_CONFIG_WINDOWS_CODEX_DIR/backups" ] || {
   printf '%s\n' 'known Windows managed paths were backed up during replacement' >&2
   exit 1

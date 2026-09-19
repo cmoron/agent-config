@@ -17,6 +17,11 @@ explicite.
 - Les fichiers app-owned sont copies ou fusionnes, jamais symlinkes vers Git.
 - Credentials, sessions, caches et etats runtime restent hors Git.
 
+Les hooks de formatage, de protection `.env` et de notification partagent leurs
+implementations dans `shared/scripts`. Les adaptateurs Codex pour `apply_patch`
+et les rappels de fin de session restent dans `harnesses/`. Les contrats,
+dependances et limites sont decrits dans [docs/hooks.md](docs/hooks.md).
+
 La reference operationnelle et les archives de conception vivent dans :
 
 - `docs/deployment-inventory.md` pour l'inventaire courant;
@@ -113,6 +118,8 @@ puis `./install.sh --check`.
 | Instructions globales                   | rendu `common + overlay`, copie                           | source                                              |
 | Skills Linux/WSL                        | liens par skill                                           | source                                              |
 | Skills Codex Windows                    | copies reelles                                            | source                                              |
+| Scripts Claude/Codex/Kimi               | dossier reel, liens par fichier commun ou natif           | source ; fichiers tiers preserves                   |
+| Scripts Codex Windows                   | copie reelle de l'ensemble commun + adaptateurs Codex     | source ; dossier gere par le manifeste              |
 | Claude `settings.json`                  | fusion JSON                                               | cles connues source, cles inconnues runtime         |
 | Codex `config.toml` Linux               | copie + preservation de `[hooks.state]` et `[projects.*]` | source + trust runtime                              |
 | Codex `config.toml` Windows             | seed-only                                                 | application                                         |

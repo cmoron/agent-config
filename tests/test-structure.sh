@@ -14,6 +14,10 @@ required_paths=(
   uv.lock
   instructions/common.md
   shared/assets/warcraft-3-paysan-travail-termine.mp3
+  shared/scripts/file-actions.sh
+  shared/scripts/format-on-save.sh
+  shared/scripts/protect-env.sh
+  shared/scripts/notify-sound.sh
   shared/skills/api-design/SKILL.md
   shared/skills/deployment/SKILL.md
   shared/skills/mvp/SKILL.md
@@ -39,6 +43,9 @@ required_paths=(
   harnesses/codex/config.toml
   harnesses/codex/hooks.json
   harnesses/codex/rules/default.rules
+  harnesses/codex/scripts/format-on-save.sh
+  harnesses/codex/scripts/protect-env.sh
+  harnesses/codex/scripts/patch-files.sh
   harnesses/kimi/instructions.overlay.md
   harnesses/kimi/config.toml
   harnesses/kimi/mcp.json
@@ -53,6 +60,22 @@ required_paths=(
 for path in "${required_paths[@]}"; do
   if [ ! -e "$ROOT/$path" ]; then
     printf 'missing required path: %s\n' "$path" >&2
+    exit 1
+  fi
+done
+
+# The portable hook implementations have one source.  Harness directories only
+# keep adapters whose payload protocol actually differs.
+for path in \
+  harnesses/claude/scripts/format-on-save.sh \
+  harnesses/claude/scripts/protect-env.sh \
+  harnesses/claude/scripts/notify-sound.sh \
+  harnesses/kimi/scripts/format-on-save.sh \
+  harnesses/kimi/scripts/protect-env.sh \
+  harnesses/kimi/scripts/notify-sound.sh \
+  harnesses/codex/scripts/notify-sound.sh; do
+  if [ -e "$ROOT/$path" ]; then
+    printf 'shared hook still duplicated by harness: %s\n' "$path" >&2
     exit 1
   fi
 done

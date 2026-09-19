@@ -1,32 +1,15 @@
 #!/usr/bin/env bash
-
+# Codex PostToolUse: apply_patch JSON -> shared file policy. docs/hooks.md.
 set -euo pipefail
+# shellcheck source=shared/scripts/file-actions.sh
+source "$(dirname "${BASH_SOURCE[0]}")/file-actions.sh"
+# shellcheck source=harnesses/codex/scripts/patch-files.sh
+source "$(dirname "${BASH_SOURCE[0]}")/patch-files.sh"
 
-INPUT=$(cat)
-COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null || true)
-
+INPUT=$(read_hook_input)
+FILES=$(read_patch_paths "$INPUT")
+change_hook_directory "$INPUT"
 while IFS= read -r file; do
-  [ -f "$file" ] || continue
-
-  case "${file##*.}" in
-    py)
-      command -v ruff >/dev/null || continue
-      ruff format --quiet "$file"
-      ruff check --fix --quiet "$file"
-      ;;
-    rs)
-      command -v rustfmt >/dev/null || continue
-      rustfmt --edition 2021 "$file"
-      ;;
-    ts|tsx|js|jsx|json|jsonc|css)
-      command -v biome >/dev/null || continue
-      biome format --write "$file" >/dev/null 2>&1
-      ;;
-    html|md|yaml|yml)
-      command -v prettier >/dev/null || continue
-      prettier --write --log-level silent "$file"
-      ;;
-  esac
-done < <(printf '%s\n' "$COMMAND" | sed -nE 's/^\*\*\* (Add|Update) File: //p')
-
+  format_files "$file"
+done <<<"$FILES"
 printf '{}\n'

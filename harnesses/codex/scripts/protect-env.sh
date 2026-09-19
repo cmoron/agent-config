@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-
+# Codex PreToolUse: apply_patch JSON -> shared file policy. docs/hooks.md.
 set -euo pipefail
+# shellcheck source=shared/scripts/file-actions.sh
+source "$(dirname "${BASH_SOURCE[0]}")/file-actions.sh"
+# shellcheck source=harnesses/codex/scripts/patch-files.sh
+source "$(dirname "${BASH_SOURCE[0]}")/patch-files.sh"
 
-INPUT=$(cat)
-COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null || true)
-
+INPUT=$(read_hook_input)
+FILES=$(read_patch_paths "$INPUT")
+change_hook_directory "$INPUT"
 while IFS= read -r file; do
-  case "$(basename "$file")" in
-    .env|.env.*)
-      echo "Fichier protege : $file" >&2
-      echo "Modifie-le manuellement si necessaire." >&2
-      exit 2
-      ;;
-  esac
-done < <(printf '%s\n' "$COMMAND" | sed -nE 's/^\*\*\* (Add|Update|Delete) File: //p')
-
+  protect_files "$file"
+done <<<"$FILES"
 printf '{}\n'

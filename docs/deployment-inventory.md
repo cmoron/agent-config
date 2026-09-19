@@ -1,9 +1,10 @@
 # Inventaire de migration multi-harness
 
-Date de mesure : 2026-08-15.
+Mesure historique de migration : 2026-08-15. Les sections suivantes decrivent
+aussi le contrat courant ; les evolutions sont datees.
 
-Cet inventaire est la porte d'entree de la migration. Une surface absente de ce
-document ne peut pas etre supprimee ou remplacee pendant la bascule.
+La bascule est terminee. Cet inventaire conserve la provenance des artefacts
+et documente leur deploiement courant.
 
 ## Sources et changements locaux
 
@@ -56,6 +57,27 @@ gz orphelin. Les versions Claude, plus completes, ont ete retenues comme base.
 `grill-with-docs` suit desormais directement le manifest Matt Pocock, avec `grilling` et
 `domain-modeling`; les anciens fichiers annexes locaux ont ete retires.
 
+### Hooks communs (2026-09-19)
+
+`shared/scripts` fournit `file-actions.sh`, les entrees de formatage/protection
+Claude/Kimi et `notify-sound.sh`. Codex remplace les entrees de fichiers par
+ses adaptateurs `apply_patch`, avec `patch-files.sh`. Les rappels Stop restent
+natifs Claude/Kimi ; OpenCode conserve ses formateurs natifs.
+
+Sur macOS/WSL, l'ancien lien de dossier `scripts` devient un dossier reel avec
+un lien par fichier, natif ou commun. Un lien de dossier gere est remplace sans
+modifier sa source ; un dossier tiers est conserve, les collisions de fichiers
+sont sauvegardees et seuls les liens geres obsoletes sont retires. Les commandes
+des configurations conservent leurs chemins runtime.
+
+Codex Windows recoit un dossier assemble avec de vrais fichiers ; le manifeste
+continue de gerer `scripts` entier, avec la sauvegarde initiale des arbres tiers
+et le remplacement des arbres deja geres. `--instructions-only` n'y touche pas.
+Les contrats, erreurs, dependances et limites vivent dans [hooks.md](hooks.md).
+Les tests utilisent des homes temporaires et des executables factices.
+Le journal du dernier son, `<home-du-harness>/notify-sound.log`, est runtime-owned
+et reste hors du manifeste et des dossiers `scripts`/`assets` geres.
+
 ### Claude Code
 
 | Artefact actuel        | Cible runtime                                | Type actuel                         | Decision cible                                                            |
@@ -83,18 +105,18 @@ l'installation.
 
 ### Codex
 
-| Artefact actuel       | Cible runtime                                | Type actuel                       | Decision cible                                                                                                                       |
-| --------------------- | -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| instructions          | `~/.codex/AGENTS.md`                         | copie                             | rendu compose avec bandeau genere                                                                                                    |
-| `config.toml`         | `~/.codex/config.toml`                       | copie + reinjection `hooks.state` | conserver la fusion ciblee Linux; Windows reste app-owned/seed-only                                                                  |
-| profils alternatifs   | `~/.codex/{terra,luna,sol-high}.config.toml` | copies `0600`                     | sources `harnesses/codex/*.config.toml`; copies reelles Windows suivies par le manifeste, configuration principale Windows preservee |
-| MCP natifs            | `~/.codex/config.toml`                       | Playwright, Linear, Unity         | Linear via HTTP OAuth; Unity desactive hors session editeur                                                                          |
-| hooks                 | `~/.codex/hooks.json`                        | copie                             | reprendre; commandes vers `~/.codex/scripts`                                                                                         |
-| scripts/assets/agents | `~/.codex/*`                                 | liens de dossier                  | reprendre, asset source depuis `shared/assets`                                                                                       |
-| rules                 | `~/.codex/rules/default.rules`               | copie                             | reprendre                                                                                                                            |
-| skills specifiques    | `~/.codex/skills`                            | liens par skill                   | vide : Codex lit le hub `~/.agents/skills`                                                                                           |
-| plugins/marketplaces  | bootstrap CLI                                | etat applicatif                   | conserver le bootstrap Codex natif; ne pas partager                                                                                  |
-| copie Windows         | `/mnt/c/Users/cyril/.codex`                  | fichiers reels + manifeste        | reprendre; ne jamais ecraser un `config.toml` existant                                                                               |
+| Artefact actuel       | Cible runtime                                | Type actuel                                                    | Decision cible                                                                                                                       |
+| --------------------- | -------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| instructions          | `~/.codex/AGENTS.md`                         | copie                                                          | rendu compose avec bandeau genere                                                                                                    |
+| `config.toml`         | `~/.codex/config.toml`                       | copie + reinjection `hooks.state`                              | conserver la fusion ciblee Linux; Windows reste app-owned/seed-only                                                                  |
+| profils alternatifs   | `~/.codex/{terra,luna,sol-high}.config.toml` | copies `0600`                                                  | sources `harnesses/codex/*.config.toml`; copies reelles Windows suivies par le manifeste, configuration principale Windows preservee |
+| MCP natifs            | `~/.codex/config.toml`                       | Playwright, Linear, Unity                                      | Linear via HTTP OAuth; Unity desactive hors session editeur                                                                          |
+| hooks                 | `~/.codex/hooks.json`                        | copie                                                          | reprendre; commandes vers `~/.codex/scripts`                                                                                         |
+| scripts/assets/agents | `~/.codex/*`                                 | scripts : liens par fichier ; assets/agents : liens de dossier | scripts communs + adaptateurs natifs ; asset source depuis `shared/assets`                                                           |
+| rules                 | `~/.codex/rules/default.rules`               | copie                                                          | reprendre                                                                                                                            |
+| skills specifiques    | `~/.codex/skills`                            | liens par skill                                                | vide : Codex lit le hub `~/.agents/skills`                                                                                           |
+| plugins/marketplaces  | bootstrap CLI                                | etat applicatif                                                | conserver le bootstrap Codex natif; ne pas partager                                                                                  |
+| copie Windows         | `/mnt/c/Users/cyril/.codex`                  | fichiers reels + manifeste                                     | reprendre; ne jamais ecraser un `config.toml` existant                                                                               |
 
 La section projet de l'ancien `config.toml` qui nomme `codex-config` doit etre
 supprimee ou remplacee par `agent-config` apres classification; aucun ancien

@@ -701,6 +701,33 @@ deploy_named_files() {
   done
 }
 
+# Native adapters override shared entrypoints by filename.
+script_sources() {
+  local harness="$1"
+  local source
+  for source in "$ROOT/shared/scripts/"*.sh "$ROOT/harnesses/$harness/scripts/"*.sh; do
+    [ -f "$source" ] || continue
+    if [[ "$source" = "$ROOT/shared/scripts/"* ]] \
+      && [ -f "$ROOT/harnesses/$harness/scripts/${source##*/}" ]; then
+      continue
+    fi
+    printf '%s\n' "$source"
+  done
+}
+
+deploy_scripts() {
+  local harness="$1"
+  local root="$2"
+  local source
+  local names=()
+  ensure_directory "$harness" "$root/scripts"
+  while IFS= read -r source; do
+    names+=("${source##*/}")
+    deploy_link "$harness" "$source" "$root/scripts/${source##*/}" "$root"
+  done < <(script_sources "$harness")
+  prune_skill_links "$harness" "$root/scripts" "${names[@]}"
+}
+
 deploy_harness_config() {
   local harness="$1"
   local rendered
@@ -711,7 +738,7 @@ deploy_harness_config() {
       rendered="$(render_temp_for "$CLAUDE_DIR/settings.json")"
       render_claude_settings "$rendered"
       deploy_rendered_file claude "$rendered" "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR" 600 json
-      deploy_link claude "$ROOT/harnesses/claude/scripts" "$CLAUDE_DIR/scripts" "$CLAUDE_DIR"
+      deploy_scripts claude "$CLAUDE_DIR"
       deploy_link claude "$ROOT/shared/assets" "$CLAUDE_DIR/assets" "$CLAUDE_DIR"
       deploy_named_files claude "$ROOT/harnesses/claude/commands" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"
       deploy_named_files claude "$ROOT/harnesses/claude/agents" "$CLAUDE_DIR/agents" "$CLAUDE_DIR"
@@ -726,7 +753,7 @@ deploy_harness_config() {
       done
       deploy_copy_file codex "$ROOT/harnesses/codex/hooks.json" "$CODEX_DIR/hooks.json" "$CODEX_DIR" 644
       deploy_copy_file codex "$ROOT/harnesses/codex/rules/default.rules" "$CODEX_DIR/rules/default.rules" "$CODEX_DIR" 644
-      deploy_link codex "$ROOT/harnesses/codex/scripts" "$CODEX_DIR/scripts" "$CODEX_DIR"
+      deploy_scripts codex "$CODEX_DIR"
       deploy_link codex "$ROOT/shared/assets" "$CODEX_DIR/assets" "$CODEX_DIR"
       deploy_link codex "$ROOT/harnesses/codex/agents" "$CODEX_DIR/agents" "$CODEX_DIR"
       ;;
@@ -736,7 +763,7 @@ deploy_harness_config() {
       deploy_rendered_file kimi "$rendered" "$KIMI_DIR/config.toml" "$KIMI_DIR" 600 toml
       deploy_copy_file kimi "$ROOT/harnesses/kimi/tui.toml" "$KIMI_DIR/tui.toml" "$KIMI_DIR" 644
       deploy_copy_file kimi "$ROOT/harnesses/kimi/mcp.json" "$KIMI_DIR/mcp.json" "$KIMI_DIR" 600
-      deploy_link kimi "$ROOT/harnesses/kimi/scripts" "$KIMI_DIR/scripts" "$KIMI_DIR"
+      deploy_scripts kimi "$KIMI_DIR"
       deploy_link kimi "$ROOT/shared/assets" "$KIMI_DIR/assets" "$KIMI_DIR"
       ;;
     opencode)
@@ -1246,6 +1273,7 @@ reconcile_windows_manifest() {
 deploy_windows_core() {
   local name
   local source
+  local scripts_tree
 
   [ -n "$WINDOWS_CODEX_DIR" ] || return 0
   WINDOWS_MANAGED_PATHS=()
@@ -1256,7 +1284,12 @@ deploy_windows_core() {
   done
   deploy_windows_file "$ROOT/harnesses/codex/hooks.json" hooks.json 644
   deploy_windows_file "$ROOT/harnesses/codex/rules/default.rules" rules/default.rules 644
-  deploy_windows_tree "$ROOT/harnesses/codex/scripts" scripts
+  scripts_tree="$(mktemp -d)"
+  while IFS= read -r source; do
+    cp -p "$source" "$scripts_tree/${source##*/}"
+  done < <(script_sources codex)
+  deploy_windows_tree "$scripts_tree" scripts
+  rm -rf "$scripts_tree"
   deploy_windows_tree "$ROOT/shared/assets" assets
   deploy_windows_tree "$ROOT/harnesses/codex/agents" agents
   while IFS=$'\t' read -r name source; do

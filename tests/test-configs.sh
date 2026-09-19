@@ -72,7 +72,15 @@ jq -e '
        | all(contains("/src/claude-config") | not))
 ' "$HOME/.claude/settings.json" >/dev/null
 [ ! -L "$HOME/.claude/settings.json" ]
-assert_link_to "$HOME/.claude/scripts" "$TEST_ROOT/harnesses/claude/scripts"
+assert_dir "$HOME/.claude/scripts"
+assert_link_to "$HOME/.claude/scripts/format-on-save.sh" \
+  "$TEST_ROOT/shared/scripts/format-on-save.sh"
+assert_link_to "$HOME/.claude/scripts/protect-env.sh" \
+  "$TEST_ROOT/shared/scripts/protect-env.sh"
+assert_link_to "$HOME/.claude/scripts/notify-sound.sh" \
+  "$TEST_ROOT/shared/scripts/notify-sound.sh"
+assert_link_to "$HOME/.claude/scripts/reflect-nudge.sh" \
+  "$TEST_ROOT/harnesses/claude/scripts/reflect-nudge.sh"
 assert_link_to "$HOME/.claude/assets" "$TEST_ROOT/shared/assets"
 assert_link_to \
   "$HOME/.claude/commands/autoship.md" \
@@ -118,7 +126,15 @@ fi
 [ ! -L "$HOME/.codex/config.toml" ]
 assert_file "$HOME/.codex/hooks.json"
 assert_file "$HOME/.codex/rules/default.rules"
-assert_link_to "$HOME/.codex/scripts" "$TEST_ROOT/harnesses/codex/scripts"
+assert_dir "$HOME/.codex/scripts"
+assert_link_to "$HOME/.codex/scripts/format-on-save.sh" \
+  "$TEST_ROOT/harnesses/codex/scripts/format-on-save.sh"
+assert_link_to "$HOME/.codex/scripts/protect-env.sh" \
+  "$TEST_ROOT/harnesses/codex/scripts/protect-env.sh"
+assert_link_to "$HOME/.codex/scripts/notify-sound.sh" \
+  "$TEST_ROOT/shared/scripts/notify-sound.sh"
+assert_link_to "$HOME/.codex/scripts/patch-files.sh" \
+  "$TEST_ROOT/harnesses/codex/scripts/patch-files.sh"
 assert_link_to "$HOME/.codex/assets" "$TEST_ROOT/shared/assets"
 assert_link_to "$HOME/.codex/agents" "$TEST_ROOT/harnesses/codex/agents"
 if rg -n 'src/(claude-config|codex-config|kimi-config)' \
@@ -163,7 +179,15 @@ kimi_hash="$(sha256sum <"$HOME/.kimi-code/config.toml")"
 [ "$kimi_hash" = "$(sha256sum <"$HOME/.kimi-code/config.toml")" ]
 assert_file "$HOME/.kimi-code/tui.toml"
 assert_file "$HOME/.kimi-code/mcp.json"
-assert_link_to "$HOME/.kimi-code/scripts" "$TEST_ROOT/harnesses/kimi/scripts"
+assert_dir "$HOME/.kimi-code/scripts"
+assert_link_to "$HOME/.kimi-code/scripts/format-on-save.sh" \
+  "$TEST_ROOT/shared/scripts/format-on-save.sh"
+assert_link_to "$HOME/.kimi-code/scripts/protect-env.sh" \
+  "$TEST_ROOT/shared/scripts/protect-env.sh"
+assert_link_to "$HOME/.kimi-code/scripts/notify-sound.sh" \
+  "$TEST_ROOT/shared/scripts/notify-sound.sh"
+assert_link_to "$HOME/.kimi-code/scripts/reflect-nudge.sh" \
+  "$TEST_ROOT/harnesses/kimi/scripts/reflect-nudge.sh"
 assert_link_to "$HOME/.kimi-code/assets" "$TEST_ROOT/shared/assets"
 if rg -n 'src/(claude-config|codex-config|kimi-config)' \
   "$HOME/.kimi-code/config.toml" "$HOME/.kimi-code/scripts/notify-sound.sh"; then
