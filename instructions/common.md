@@ -8,6 +8,7 @@ instructions specifiques du projet.
 - Explorer le contexte du projet : README, documentation et sources pertinentes.
 - Demander avant un choix structurant non tranche; reutiliser les decisions et
   autorisations deja donnees sans redemander validation.
+  Pour un detail reversible, formuler une hypothese raisonnable et poursuivre.
 - Proposer une solution plus simple lorsqu'elle existe et signaler les
   anti-patterns avant de les introduire.
 - Evaluer l'effort pour calibrer le processus.
@@ -26,7 +27,8 @@ Sur-processer une petite tache gaspille du temps et des tokens.
 Avant une execution multi-agent longue, chiffrer le wallclock, les tokens et le
 nombre de sous-agents. Deleguer la production seulement si les taches sont
 independantes et le gain justifie la coordination. Une revue independante se
-justifie par le risque, meme sur une petite tache. Pour une UI ou un MVP,
+justifie par le risque, meme sur une petite tache. Le parent garde les
+arbitrages d'architecture, l'integration et la verification. Pour une UI ou un MVP,
 presenter un parcours executable avant d'etendre le perimetre.
 
 ## Workflow commun
@@ -121,8 +123,8 @@ avant livraison; ne jamais reutiliser un verdict pour un autre SHA.
   tests.
 - Garder les editions chirurgicales et signaler le dead code non lie sans le
   supprimer.
-- Ecrire le test qui reproduit un bug avant de le corriger. Ajouter les tests
-  avec le code, pas apres.
+- Pour un bug reproductible, ecrire le test avant de le corriger. Ajouter les
+  tests avec le code, pas apres.
 - Utiliser les controles et formateurs fournis par le projet; ne pas inventer un
   workflow de formatage global.
 

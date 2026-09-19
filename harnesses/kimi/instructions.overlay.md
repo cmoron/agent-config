@@ -2,8 +2,8 @@
 
 ### Planification et delegation
 
-- Pour une tache M qui necessite un arbitrage, utiliser le mode Plan puis
-  executer inline apres validation.
+- Pour une tache M avec un choix structurant, utiliser le mode Plan; sinon
+  rester inline.
 - Pour une tache L+, suivre le Workflow commun et chiffrer la delegation.
   Utiliser seulement les capacites exposees; `/goal` sur demande explicite.
 - Le modele principal garde architecture, arbitrages et debug difficile.

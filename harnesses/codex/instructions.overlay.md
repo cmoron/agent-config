@@ -4,6 +4,7 @@
 
 - Defaut : `gpt-5.6-sol` a effort `xhigh` pour l'orchestration, l'architecture,
   les demandes ambigues et les implementations critiques.
+  Le modele choisi par Cyril en session prime sur ce defaut.
 - `terra` a effort `high` convient aux implementations bornees, non critiques
   et clairement specifiees.
 - `luna` a effort `high` convient a l'exploration read-only et au volume
