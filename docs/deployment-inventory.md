@@ -1,223 +1,159 @@
-# Inventaire de migration multi-harness
+# Inventaire de deploiement
 
-Mesure historique de migration : 2026-08-15. Les sections suivantes decrivent
-aussi le contrat courant ; les evolutions sont datees.
+Ce document decrit le contrat courant de `install.sh`. Les chemins ci-dessous
+sont les cibles par defaut ; les variables `AGENT_CONFIG_*` de l'installateur
+permettent de les remplacer. Les plans et releves de migration sont dans
+l'historique Git.
 
-La bascule est terminee. Cet inventaire conserve la provenance des artefacts
-et documente leur deploiement courant.
+## Instructions, skills et hooks
 
-## Sources et changements locaux
+| Source                                        | Cible                                                                                                 | Strategie                                                                 |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `instructions/common.md` + overlay du harness | `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, `~/.kimi-code/AGENTS.md` | Rendu avec bandeau genere, copie                                          |
+| `shared/skills/` + selection Matt Pocock      | `~/.agents/skills` pour Codex/Kimi ; miroirs `~/.claude/skills` et `~/.config/opencode/skills`        | Liens par skill                                                           |
+| Allowlist Anthropic                           | `~/.claude/skills` uniquement                                                                         | Liens vers le sous-module Claude                                          |
+| `shared/scripts/*.sh` + scripts natifs        | `~/.{codex,claude,kimi-code}/scripts`                                                                 | Dossier reel, liens par fichier ; le natif remplace le commun de meme nom |
+| `shared/assets/`                              | `~/.{codex,claude,kimi-code}/assets`                                                                  | Lien de dossier                                                           |
 
-| Source          | Commit mesure                              | Changement local                                                            | Decision                                                                                                                   |
-| --------------- | ------------------------------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `codex-config`  | `a6ab99b2748f85caba946cf98953121967a52a1f` | `config.toml`: MCP Playwright via `bunx --bun`, plugin Playwright desactive | reprendre                                                                                                                  |
-| `claude-config` | `7ad1a9f40fc747114688bf66383b1a50c549022f` | `RTK.md`: `rtk hook check`                                                  | reprendre dans l'overlay Claude                                                                                            |
-| `claude-config` | idem                                       | `settings.json`: mode `auto`, modele `opus[1m]`                             | **corrige** : `auto` etait un etat local transitoire; l'etat declare est `bypassPermissions`, comme le commit de reference |
-| `claude-config` | idem                                       | `lotusim-developer`: nettoyage robuste des processus Gazebo                 | **revise** : promu dans `shared/skills` (cf. Partagee)                                                                     |
-| `claude-config` | idem                                       | `openclaw`: documentation Nestor/Hermes et heartbeat 30 min                 | **revise** : promu dans `shared/skills` (cf. Partagee)                                                                     |
-| `codex-config`  | `7494e72` (posterieur a la mesure)         | `hooks.json` + `scripts/reflect-nudge.sh`: suppression du hook `Stop`       | reprendre : le hook bloquait les tours termines                                                                            |
-| `kimi-config`   | `852bc1a9b6ef81b9ea734732dee842fa257672b4` | `mcp.json`: retrait de Peekaboo et Unity                                    | reprendre; la cible contient Linear et Context7                                                                            |
-| `kimi-config`   | idem                                       | `README.md`: liste MCP encore incoherente                                   | ne pas importer; reecrire le README consolide depuis la cible effective                                                    |
-| runtime Kimi    | hors Git                                   | `config.toml`: `scope = "user"`, `loop_control`, `mcp.client`               | reprendre semantiquement; classer le fichier `merge`                                                                       |
+Chaque skill local vit dans `shared/skills`, meme s'il ne sert qu'a un harness.
+macOS et WSL sont des variantes d'environnement, pas des raisons de le dupliquer.
+Ses ressources utiles (references et scripts) sont deployees avec lui.
+`harnesses/<name>/skills/` reste une echappatoire de l'installateur, actuellement
+vide et controlee par `tests/test-structure.sh` ; tout usage exige une
+justification ici. Codex et Kimi lisent le hub sans seconde copie des skills
+partages dans leur home natif.
 
-Les contenus divergents ne sont pas resolus par choix implicite. Ils restent
-dans le harness qui les possede jusqu'a une verification dediee.
+La selection Matt Pocock vient de `.claude-plugin/plugin.json` dans le
+sous-module, completee par `upstreams/mattpocock-extra-skills.txt`. Les chemins
+absents, non surs ou en collision font echouer l'installation. L'allowlist
+Anthropic est : `claude-api`, `mcp-builder`, `webapp-testing`, `doc-coauthoring`,
+`docx`, `pdf`, `pptx`, `xlsx`. Aucun fork local de ces skills n'est maintenu.
 
-## Surface actuelle et cible
+Les scripts tiers d'autres noms sont preserves ; les collisions sont
+sauvegardees et seuls les liens geres obsoletes sont purges. Un ancien lien de
+dossier `scripts` gere est remplace sans modifier sa source. OpenCode conserve
+ses formateurs natifs et ne recoit pas ces hooks shell. Les protocoles et les
+limites sont documentes dans [hooks.md](hooks.md).
 
-### Partagee
+`--instructions-only` ne touche ni configs, ni skills, ni plugins, ni manifeste
+Windows. Les instructions composees definissent le workflow global ; les
+surcharges `docs/agents/` des projets sont lues par l'agent, sans ecriture de
+l'installateur dans ces projets.
 
-| Artefact              | Source actuelle                           | Cible actuelle                                       | Decision cible                                                                                                             |
-| --------------------- | ----------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 16 skills locaux      | forkes par harness dans les depots legacy | homes Claude/Codex/Kimi                              | source unique `shared/skills`; hub `~/.agents/skills`; miroirs Claude et OpenCode                                          |
-| 32 skills Matt Pocock | `mattpocock/skills`                       | plugin/skills externes                               | submodule sur `main`; 25 promus par le manifest amont + 7 listes hors buckets promus; memes cibles que les skills partages |
-| son de notification   | trois copies byte-identiques              | chemins sous les anciens depots ou `~/.codex/assets` | source unique `shared/assets`; copie/lien dans l'assets dir natif de chaque harness                                        |
-| instructions communes | trois fichiers divergents                 | fichiers globaux natifs                              | `instructions/common.md` + overlay rendu dans chaque home natif                                                            |
-
-`shared/skills` contient **tous** les skills locaux, en un seul exemplaire :
-`agent-config`, `api-design`, `autoship`, `commit`, `deployment`, `linear`,
-`lotusim-developer`, `macos-control`, `mvp`, `nvim-config`, `openclaw`,
-`opensource-contributor`, `stack-python`, `stack-rust`, `stack-ts` et
-`wsl-windows-gui`.
-
-macOS contre WSL est un axe environnement, pas un axe harness : les quatre
-harnais tournent sur les deux machines. Un skill n'est donc jamais duplique par
-harness, meme s'il ne sert qu'a l'un d'eux. La portion qui depend reellement du
-harness s'ecrit dans le fichier unique — une phrase, un tableau, une section
-« selon le harness ». `harnesses/<name>/skills/` reste supporte par
-l'installateur mais doit rester vide; `tests/test-structure.sh` le verifie.
-
-Cette regle revient sur la decision initiale « reprendre dans la variante
-Claude, sans promouvoir vers `shared/` » pour `openclaw` et `lotusim-developer`.
-Les forks avaient diverge : la copie Codex d'`opensource-contributor` avait
-perdu une etape obligatoire entiere, celle d'`openclaw` annoncait un heartbeat
-de 4 h contre 30 min, celle de `lotusim-developer` ignorait le piege du process
-gz orphelin. Les versions Claude, plus completes, ont ete retenues comme base.
-
-`grill-with-docs` suit desormais directement le manifest Matt Pocock, avec `grilling` et
-`domain-modeling`; les anciens fichiers annexes locaux ont ete retires.
-
-### Hooks communs (2026-09-19)
-
-`shared/scripts` fournit `file-actions.sh`, les entrees de formatage/protection
-Claude/Kimi et `notify-sound.sh`. Codex remplace les entrees de fichiers par
-ses adaptateurs `apply_patch`, avec `patch-files.sh`. Les rappels Stop restent
-natifs Claude/Kimi ; OpenCode conserve ses formateurs natifs.
-
-Sur macOS/WSL, l'ancien lien de dossier `scripts` devient un dossier reel avec
-un lien par fichier, natif ou commun. Un lien de dossier gere est remplace sans
-modifier sa source ; un dossier tiers est conserve, les collisions de fichiers
-sont sauvegardees et seuls les liens geres obsoletes sont retires. Les commandes
-des configurations conservent leurs chemins runtime.
-
-Codex Windows recoit un dossier assemble avec de vrais fichiers ; le manifeste
-continue de gerer `scripts` entier, avec la sauvegarde initiale des arbres tiers
-et le remplacement des arbres deja geres. `--instructions-only` n'y touche pas.
-Les contrats, erreurs, dependances et limites vivent dans [hooks.md](hooks.md).
-Les tests utilisent des homes temporaires et des executables factices.
-Le journal du dernier son, `<home-du-harness>/notify-sound.log`, est runtime-owned
-et reste hors du manifeste et des dossiers `scripts`/`assets` geres.
-
-### Claude Code
-
-| Artefact actuel        | Cible runtime                                | Type actuel                         | Decision cible                                                            |
-| ---------------------- | -------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
-| `CLAUDE.md` + `RTK.md` | `~/.claude/`                                 | symlinks                            | rendu unique `CLAUDE.md`; RTK inline dans l'overlay; bandeau genere       |
-| `settings.json`        | `~/.claude/settings.json`                    | symlink reecrit par l'application   | `merge`; source-owned et runtime-owned documentes                         |
-| hooks shell            | commandes vers `~/src/claude-config/scripts` | chemin source en dur                | deployer sous `~/.claude/scripts`; commandes vers la cible deployee       |
-| asset audio            | `~/src/claude-config/assets`                 | chemin source en dur dans le script | deployer sous `~/.claude/assets`; script sans ancien chemin source        |
-| commands               | `~/.claude/commands`                         | liens par fichier                   | reprendre declarativement                                                 |
-| agents                 | `~/.claude/agents`                           | dossier gere, actuellement vide     | reprendre le contrat; preserver les artefacts tiers                       |
-| skills personnels      | `~/.claude/skills`                           | liens par skill                     | miroir de `shared/skills`; Claude ne lit pas le hub                       |
-| skills Anthropic       | submodule `main` + allowlist de 8            | liens dans `~/.claude/skills`       | conserver sous `harnesses/claude/upstream`; meme allowlist                |
-| ccstatusline           | `~/.config/ccstatusline`                     | lien de dossier                     | reprendre declarativement sans supprimer un dossier tiers sans sauvegarde |
-| plugins/marketplaces   | `settings.json` + bootstrap CLI              | etat applicatif                     | conserver le bootstrap Claude natif; ne pas partager                      |
-
-Allowlist Anthropic conservee : `claude-api`, `mcp-builder`,
-`webapp-testing`, `doc-coauthoring`, `docx`, `pdf`, `pptx`, `xlsx`.
-
-Le submodule `upstreams/mattpocock-skills` suit `main`. Aucun duplicat local
-n'est maintenu : les deux listes pointent vers le submodule. Le manifest Claude
-fournit les skills promus par l'amont; `upstreams/mattpocock-extra-skills.txt`
-nomme ceux utilises hors des buckets promus (`misc/`, `in-progress/`), que le
-manifest ne peut pas exprimer. Un chemin absent en amont fait echouer
-l'installation.
+## Configurations natives
 
 ### Codex
 
-| Artefact actuel       | Cible runtime                                | Type actuel                                                    | Decision cible                                                                                                                       |
-| --------------------- | -------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| instructions          | `~/.codex/AGENTS.md`                         | copie                                                          | rendu compose avec bandeau genere                                                                                                    |
-| `config.toml`         | `~/.codex/config.toml`                       | copie + reinjection `hooks.state`                              | conserver la fusion ciblee Linux; Windows reste app-owned/seed-only                                                                  |
-| profils alternatifs   | `~/.codex/{terra,luna,sol-high}.config.toml` | copies `0600`                                                  | sources `harnesses/codex/*.config.toml`; copies reelles Windows suivies par le manifeste, configuration principale Windows preservee |
-| MCP natifs            | `~/.codex/config.toml`                       | Playwright, Linear, Unity                                      | Linear via HTTP OAuth; Unity desactive hors session editeur                                                                          |
-| hooks                 | `~/.codex/hooks.json`                        | copie                                                          | reprendre; commandes vers `~/.codex/scripts`                                                                                         |
-| scripts/assets/agents | `~/.codex/*`                                 | scripts : liens par fichier ; assets/agents : liens de dossier | scripts communs + adaptateurs natifs ; asset source depuis `shared/assets`                                                           |
-| rules                 | `~/.codex/rules/default.rules`               | copie                                                          | reprendre                                                                                                                            |
-| skills specifiques    | `~/.codex/skills`                            | liens par skill                                                | vide : Codex lit le hub `~/.agents/skills`                                                                                           |
-| plugins/marketplaces  | bootstrap CLI                                | etat applicatif                                                | conserver le bootstrap Codex natif; ne pas partager                                                                                  |
-| copie Windows         | `/mnt/c/Users/cyril/.codex`                  | fichiers reels + manifeste                                     | reprendre; ne jamais ecraser un `config.toml` existant                                                                               |
+| Source sous `harnesses/codex/`                                  | Cible sous `~/.codex/` | Strategie                                           |
+| --------------------------------------------------------------- | ---------------------- | --------------------------------------------------- |
+| `config.toml`                                                   | `config.toml`          | Copie rendue `0600`, avec etats runtime preserves   |
+| `terra.config.toml`, `luna.config.toml`, `sol-high.config.toml` | Memes noms             | Copies `0600` ; autres profils personnels preserves |
+| `hooks.json`, `rules/default.rules`                             | Memes chemins          | Copies                                              |
+| `agents/`                                                       | `agents`               | Lien de dossier                                     |
 
-La section projet de l'ancien `config.toml` qui nomme `codex-config` doit etre
-supprimee ou remplacee par `agent-config` apres classification; aucun ancien
-chemin de depot ne doit rester dans une sortie deployee.
+Le rendu du fichier principal preserve `[hooks.state]`, `[projects.*]` et les
+cles `last_updated`/`last_revision` des marketplaces declarees. Le reste suit
+la source. Sol xhigh est le defaut ; un choix explicite en session prime.
+Les profils s'utilisent avec `codex --profile terra|luna|sol-high` et sont des
+fichiers voisins, sans tables `[profiles.*]`. Leur chargement est teste avec la
+CLI installee dans un home temporaire, sans appel de modele.
 
-Depuis le 8 septembre 2026, les profils utilisent le format de Codex >= 0.134.
-Les sources TOML sont validees avant ecriture. Les fichiers Linux sont copies
-avec sauvegarde avant remplacement ; les autres noms de profils personnels
-ne sont pas purges. Windows reprend le mecanisme de copie/manifeste existant :
-sauvegarde d'un fichier tiers avant sa premiere prise en charge, puis remplacement
-des fichiers deja geres. Le fichier principal Windows reste seed-only, meme s'il
-contient des tables legacy a migrer separement. Le test natif utilise la CLI
-reelle sur les trois profils, sans requete a un modele.
+### Claude Code
 
-Sol xhigh reste le defaut declare ; un choix de modele en session est volontaire,
-pas une demande de changer ce defaut. Les versions de plugins distants et les
-modeles effectifs sont releves pour les comparaisons de comportement selon
-[la procedure de validation](configuration-validation.md).
+| Source sous `harnesses/claude/` | Cible                     | Strategie                                    |
+| ------------------------------- | ------------------------- | -------------------------------------------- |
+| `settings.json`                 | `~/.claude/settings.json` | Fusion JSON, mode `0600`                     |
+| `commands/`                     | `~/.claude/commands`      | Liens par fichier                            |
+| `agents/` si present            | `~/.claude/agents`        | Liens par fichier, artefacts tiers preserves |
+| `config/ccstatusline/`          | `~/.config/ccstatusline`  | Lien de dossier                              |
 
-### Kimi Code
-
-| Artefact actuel    | Cible runtime                              | Type actuel                         | Decision cible                                                                                                               |
-| ------------------ | ------------------------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| instructions       | `~/.kimi-code/AGENTS.md`                   | symlink                             | rendu compose avec bandeau genere                                                                                            |
-| `config.toml`      | `~/.kimi-code/config.toml`                 | symlink remplace par l'application  | `merge`; preserver les sections runtime inconnues; isoler le groupe de skills Kimi avec `merge_all_available_skills = false` |
-| `tui.toml`         | `~/.kimi-code/tui.toml`                    | symlink                             | copie apres sauvegarde                                                                                                       |
-| `mcp.json`         | `~/.kimi-code/mcp.json`                    | symlink                             | copie apres sauvegarde; Linear + Context7                                                                                    |
-| hooks shell        | commandes vers `~/src/kimi-config/scripts` | chemin source en dur                | deployer sous `~/.kimi-code/scripts`; commandes vers la cible deployee                                                       |
-| asset audio        | `~/src/kimi-config/assets`                 | chemin source en dur dans le script | deployer sous `~/.kimi-code/assets`; script sans ancien chemin source                                                        |
-| skills specifiques | `~/.kimi-code/skills`                      | liens par skill                     | vide : Kimi lit le hub `~/.agents/skills`                                                                                    |
-| credentials OAuth  | `~/.kimi-code/credentials`                 | app-owned                           | ignorer strictement                                                                                                          |
-
-Le rendu de `config.toml` est compare semantiquement via `tomllib` depuis le
-8 septembre 2026. Une annotation ou une mise en forme differente avec les memes
-valeurs n'est pas une derive ; les valeurs gerees restent imposees par la fusion.
+`permissions`, `model`, `hooks`, `statusLine`, `enabledPlugins` et
+`extraKnownMarketplaces` sont entierement source-owned. Les cles top-level
+inconnues sont preservees. La comparaison JSON est semantique : le reordonnancement
+par l'application ne provoque pas de derive.
 
 ### OpenCode
 
-| Artefact actuel    | Cible runtime                      | Type actuel                           | Decision cible                                                                                                    |
-| ------------------ | ---------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `opencode.json`    | `~/.config/opencode/opencode.json` | fichier mode `0600`, non gere         | importer sans secret; copie mode `0600` apres sauvegarde                                                          |
-| instructions       | absentes                           | aucune                                | rendu compose vers `~/.config/opencode/AGENTS.md`                                                                 |
-| skills partages    | hub Claude/agents lu nativement    | fuite des skills Claude-only observee | desactiver la compatibilite Claude et miroiter les liens dans `~/.config/opencode/skills`                         |
-| environnement      | `~/.profile.local` hors gestion    | aucune isolation de discovery         | fusionner un bloc qui exporte `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`; preserver et sauvegarder le reste hors Git |
-| skills specifiques | absents                            | aucun                                 | vide : `~/.config/opencode/skills` est un miroir complet de `shared/skills`                                       |
-| provider Ollama    | dans `opencode.json`               | app/runtime                           | conserver; smoke modele differe tant que le provider ne repond pas                                                |
+`harnesses/opencode/opencode.json` est copie en mode `0600` sous
+`~/.config/opencode/opencode.json`. Il conserve le provider Ollama et la forme
+`"formatter": {}` acceptee par la CLI testee, pour les formateurs natifs.
 
-Le plan n'utilise pas la cle `instructions[]`; le support de `~/` dans cette cle
-n'est donc pas un prerequis. OpenCode 1.3.13 masque aussi le hub lorsque la
-compatibilite Claude est desactivee; le miroir natif est donc teste avec le
-binaire reel, pas deduit de la documentation.
+`harnesses/opencode/env.sh` est insere dans un bloc gere de `~/.profile.local` ;
+le reste du fichier est preserve. Le flag `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`
+isole les skills Claude-only. Le binaire 1.3.13 teste masquait aussi le hub avec
+ce flag, d'ou le miroir natif couvert par `tests/test-opencode.sh`.
+Ouvrir un nouveau shell ou sourcer `~/.profile.local` apres installation pour
+que le processus herite du flag. Les tests de decouverte ne valident pas une
+requete au modele Ollama.
 
-## Workflow global (2026-09-19)
+### Kimi Code
 
-Le rendu `common + overlay` fournit aussi les valeurs tracker/labels/domaine
-Pocock et la selection des parcours Pocock/Superpowers/autoship a chaque harness.
-Aucun fichier `docs/agents/` n'est cree dans les depots consommateurs; leurs
-surcharges existantes sont lues par l'agent. Les submodules restent intacts.
+`harnesses/kimi/config.toml` est fusionne vers `~/.kimi-code/config.toml` en
+mode `0600`. Seuls `default_permission_mode`, `merge_all_available_skills`,
+`[[permission.rules]]` et `[[hooks]]` sont imposes par le depot. La source fixe
+`merge_all_available_skills = false` ; modeles, providers et autres sections
+runtime sont preserves. La source sert de seed lors de la premiere installation.
+La comparaison TOML est semantique ; les limites du mergeur textuel sont dans
+le [guide des scripts](../scripts/README.md#comprendre-la-fusion-kimi).
 
-`install.sh --instructions-only` reutilise le rendu et les sauvegardes natifs,
-y compris le vrai fichier Codex Windows; il laisse configs, skills, plugins et
-manifeste Windows intacts. `--check` dans ce mode couvre uniquement ces rendus.
-Les tests sous home temporaire verifient la preservation de la config runtime.
+`tui.toml` et `mcp.json` sont copies depuis le meme dossier source dans
+`~/.kimi-code/`, respectivement en modes `0644` et `0600`.
 
-`autoship/scripts/check-candidate.sh` fait partie de l'arbre du skill partage :
-liens sur macOS/WSL, copie reelle avec le skill sous Codex Windows. Aucun nouvel
-agent, plugin, MCP ou hook. Le garde est en lecture seule et se lance via bash.
-Les tests de candidat couvrent references invalides, arbre sale, fichiers
-nouveaux/indexes, candidat obsolete et diff vide. Les tests de rendu couvrent
-le contrat global; ils ne remplacent pas une evaluation sur les vrais modeles.
+## Codex Windows
 
-## Hors perimetre de gestion
+La cible autodetectee sous WSL est `/mnt/c/Users/$USER/.codex` si le profil
+Windows existe ; `AGENT_CONFIG_WINDOWS_CODEX_DIR` permet de la definir, ou de
+desactiver la copie avec une valeur vide.
 
-Les chemins suivants sont app-owned et ne doivent jamais etre purges, copies
-vers Git ou compares byte-a-byte : credentials, sessions, caches, historiques,
-memoires natives, bases SQLite, logs, locks, telemetry, OAuth, trust state,
-plugins installes et marketplaces telechargees.
+Instructions, profils, hooks, rules, scripts assembles, assets, agents et skills
+sont de vrais fichiers, geres par `.agent-config-managed`. Un fichier ou arbre
+tiers est sauvegarde lors de sa premiere prise en charge ; un arbre deja gere
+est remplace. Les chemins obsoletes du manifeste sont purges. Le manifeste
+legacy `.codex-config-managed` est reconnu puis remplace.
 
-`~/.claude/rules`, la memoire Claude par projet et les instructions locales des
-repositories restent des sources d'instructions externes assumees.
+Un `config.toml` existant sous forme de fichier regulier reste app-owned et
+est conserve. Une cible absente ou symbolique recoit une copie de la source ;
+un lien tiers est sauvegarde avant remplacement. S'il contient encore des tables de profils legacy,
+l'ajout des nouveaux fichiers ne suffit pas : leur migration dans ce fichier
+reste distincte. Les copies Windows sont testees sous Linux ; cela ne prouve
+pas leur fonctionnement natif sur Windows.
 
-## Invariants de bascule
+## Plugins et MCP
 
-- `~/.agents/AGENTS.md` doit etre absent. `--check` signale sa presence mais ne
-  le supprime pas.
-- Aucun fichier gere ou script deploye ne contient `claude-config`,
-  `codex-config` ou `kimi-config` comme chemin source. La detection couvre les
-  formes `/home/<user>`, `/Users/<user>`, `$HOME` et `~`; un commentaire
-  d'en-tete recupere par une fusion compte comme une reference.
-- Un fichier rendu au format JSON est compare semantiquement, pas octet a
-  octet. Claude Code reecrit `settings.json` dans son propre ordre de cles des
-  que l'installateur amorce les plugins; sans cela `--check` signalerait une
-  derive de contenu a chaque execution.
-- Un skill partage n'existe pas simultanement dans le hub et dans le home Codex.
-- Les racines legacy sont derivees de `$HOME` et couvrent `src/claude-config`,
-  `src/codex-config`, `src/kimi-config` et `src/skills`. Un lien deploye vers
-  l'une d'elles est purge sans sauvegarde; les autres liens tiers sont
-  sauvegardes, jamais supprimes. `src/skills` est l'ancien clone manuel des
-  skills Matt Pocock, remplace par le submodule.
-- Les anciens installateurs restent actifs avant la bascule. Un marqueur de
-  migration les rend inoperants atomiquement pendant la bascule; le rollback
-  retire ce marqueur avant de les reutiliser.
-- L'archivage des anciens depots n'est autorise qu'apres deux cycles reels suivis
-  d'un `./install.sh --check` propre.
+Les bootstraps Claude et Codex restent natifs et ne tournent qu'en mode apply,
+si la CLI est disponible et `AGENT_CONFIG_SKIP_PLUGINS` n'est pas `1`. Ils
+peuvent installer/actualiser les plugins declares. Les tests utilisent des CLI
+factices ; un test de copie n'etablit pas l'activation d'un plugin.
+
+| Harness  | Source declarative                 | MCP declares                                     |
+| -------- | ---------------------------------- | ------------------------------------------------ |
+| Codex    | `harnesses/codex/config.toml`      | Playwright, Linear, Unity (desactive par defaut) |
+| Claude   | `harnesses/claude/settings.json`   | Linear                                           |
+| OpenCode | `harnesses/opencode/opencode.json` | Aucun                                            |
+| Kimi     | `harnesses/kimi/mcp.json`          | Context7, Linear                                 |
+
+Les MCP de plugins ne figurent pas dans ce tableau. Unity s'active par session
+avec `codex -c mcp_servers.unityMCP.enabled=true` quand l'editeur expose son
+endpoint. Les protocoles restent declares nativement, sans manifeste commun.
+
+## Sauvegardes et limites de gestion
+
+Les sauvegardes sont sous `<racine-runtime>/backups/<horodatage>/`. Celles de
+`~/.profile.local` vont sous `~/.config/agent-config/backups/` ; celles de
+ccstatusline sous `~/.config/backups/`. Aucune sauvegarde ne va dans Git.
+
+L'installateur reconnait ses liens et ceux des anciennes racines
+`$HOME/src/{claude-config,codex-config,kimi-config,skills}` pour leur remplacement
+ou purge. Les autres artefacts tiers en collision sont sauvegardes. Le garde
+legacy reste actif tant que les anciens installateurs doivent etre neutralises ;
+voir le [guide des scripts](../scripts/README.md#gerer-le-verrou-des-anciens-depots).
+Leur archivage exige une validation explicite apres deux cycles reels suivis
+d'un `./install.sh --check` propre.
+
+`--check` signale un `~/.agents/AGENTS.md` concurrent sans le supprimer, et les
+anciens chemins source dans les fichiers geres. Credentials, sessions, caches,
+historiques, memoires, bases SQLite, logs, locks, telemetry, OAuth et etats
+applicatifs hors contrat ne sont ni importes ni purges. Le journal sonore
+`<home-du-harness>/notify-sound.log` reste hors des arbres geres.
+`~/.claude/rules`, la memoire Claude par projet et les instructions locales
+restent des sources externes assumees.

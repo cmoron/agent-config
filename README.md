@@ -1,222 +1,96 @@
 # agent-config
 
-Configuration personnelle multi-harness pour Claude Code, Codex, Kimi Code et
-OpenCode.
+Source declarative unique des configurations Codex, Claude Code, OpenCode et
+Kimi Code de Cyril. Les homes runtime sont produits par `install.sh` ; les
+modifications se font ici.
 
-La bascule est faite : ce depot est la source declarative unique. Les anciens
-depots `claude-config`, `codex-config` et `kimi-config` sont geles derriere la
-garde legacy et ne sont plus autoritatifs; leur archivage attend une validation
-explicite.
+## Organisation
 
-## Principes
+| Chemin                                | Contenu                                                          |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `instructions/`                       | Socle comportemental commun, compose avec un overlay par harness |
+| `harnesses/<name>/`                   | Configurations et adaptations natives                            |
+| `shared/skills/`                      | Skills locaux, chacun en un seul exemplaire                      |
+| `shared/scripts/` et `shared/assets/` | Actions de hooks et son communs                                  |
+| `upstreams/`                          | Skills Matt Pocock en sous-module et selection complementaire    |
+| `scripts/`                            | Outils de maintenance du depot                                   |
+| `tests/`                              | Controles sous homes temporaires                                 |
 
-- `shared/` contient uniquement les artefacts reellement portables.
-- `harnesses/<name>/` contient les configurations et adaptations natives.
-- Les instructions sont rendues depuis `instructions/common.md` et un overlay.
-- `~/.agents` est reserve au hub de skills lu par Codex et Kimi.
-- Les fichiers app-owned sont copies ou fusionnes, jamais symlinkes vers Git.
-- Credentials, sessions, caches et etats runtime restent hors Git.
+Les skills Anthropic sont un sous-module sous `harnesses/claude/upstream/`.
+Les credentials, sessions, caches et memoires natives restent hors Git.
 
-Les hooks de formatage, de protection `.env` et de notification partagent leurs
-implementations dans `shared/scripts`. Les adaptateurs Codex pour `apply_patch`
-et les rappels de fin de session restent dans `harnesses/`. Les contrats,
-dependances et limites sont decrits dans [docs/hooks.md](docs/hooks.md).
+## Installer et verifier
 
-La reference operationnelle et les archives de conception vivent dans :
-
-- `docs/deployment-inventory.md` pour l'inventaire courant;
-- `docs/configuration-validation.md` pour les controles CLI et les comparaisons
-  de comportement apres changement de modele, de skill ou de plugin;
-- `docs/superpowers/plans/2026-08-15-agent-config-consolidation.md` pour le
-  plan initial, desormais historique;
-- `docs/reviews/2026-08-15-plan-review-claude.md` pour la review historique de
-  ce plan.
-
-## Workflow commun aux projets
-
-`instructions/common.md` fournit les conventions GitHub/Pocock sans setup
-obligatoire dans chaque depot : tracker GitHub, labels canoniques et lecture
-optionnelle du contexte domaine. Les fichiers `docs/agents/*.md` d'un projet
-surchargent ces valeurs; l'installation n'ecrit rien dans les projets.
-
-Le parcours borne utilise Pocock, les plans complexes Superpowers lorsqu'il
-est disponible. Chaque parcours garde son TDD et ses revues; les commandes
-Pocock manuelles restent manuelles. `autoship` orchestre une petite tache inline
-et une seule voie de revue amont, puis sa livraison explicitement autorisee.
-`frontend-design` reste la reference UI; aucun ajout d'Impeccable ou de reviewer.
-
-Toute revue sur HEAD porte sur un candidat commite, y compris dans `implement`.
-Le garde `shared/skills/autoship/scripts/check-candidate.sh` controle references,
-arbre propre et diff non vide; il ne certifie ni les tests ni le jugement d'une
-revue. `tests/test-review-candidate.sh` couvre les etats Git sous depot temporaire.
-Les tests de rendu couvrent la presence du contrat global pour les quatre
-harnesses; ils ne prouvent pas l'obeissance d'un modele aux instructions.
-
-## Prerequis
-
-`install.sh` a besoin de `bash >= 4`, `python >= 3.11` (pour `tomllib`) et `jq`.
-macOS livre bash 3.2 et python 3.9 : l'installateur se re-execute sous le bash
-de Homebrew et choisit le premier `python3.x` qui expose `tomllib`.
-`AGENT_CONFIG_PYTHON` force cet interpreteur.
-
-## Initialisation
-
-Un clone neuf peut soit initialiser les revisions epinglees par le superprojet,
-soit s'aligner immediatement sur les branches `main` suivies :
+Prerequis : Bash >= 4, Python >= 3.11 avec `tomllib`, Git et `jq`.
+Sur macOS, l'installateur cherche Bash dans les emplacements Homebrew et un
+Python compatible sur le PATH ; `AGENT_CONFIG_PYTHON` force cet interpreteur.
+La mise a jour et les controles Python utilisent `uv` et `pyproject.toml`.
 
 ```bash
+# Initialiser les revisions de skills epinglees par Git.
 git submodule update --init --recursive
-# ou, pour suivre main et valider sans deployer :
-uv run scripts/update_upstreams.py --no-install
-```
 
-## Deploiement
-
-Les tests s'executent sous des homes temporaires; seul `./install.sh` touche
-les homes reels :
-
-```bash
+# Examiner les changements, appliquer, puis verifier la derive.
 ./install.sh --dry-run
-./install.sh --check
-./install.sh --instructions-only
-./install.sh --only codex
 ./install.sh
+./install.sh --check
 ```
 
-Un deploiement reel se lance explicitement; il n'est jamais un effet de bord
-des tests.
+`--only codex|claude|opencode|kimi` limite la cible.
+`--instructions-only` ne rend que les instructions ; il se combine avec
+`--only`, `--dry-run` et `--check`. Son controle ne couvre que ces fichiers.
+`AGENT_CONFIG_SKIP_PLUGINS=1` desactive les bootstraps de plugins pendant une
+installation. Les sauvegardes precedent le remplacement des fichiers tiers.
 
-`--instructions-only` applique uniquement `common + overlay`, avec sauvegardes,
-aux harnesses selectionnes (et au fichier Codex Windows si configure). Il se
-combine avec `--only`, `--dry-run` et `--check`; il preserve configs, plugins,
-skills et manifeste Windows. Son controle ne certifie que les instructions.
+Les fichiers reecrits par les applications sont copies ou fusionnes, jamais
+symlinkes vers Git. Codex Windows recoit de vrais fichiers et conserve son
+`config.toml` existant s'il est un fichier regulier, sans lien symbolique.
+Les contrats precis et les chemins de sauvegarde sont
+dans l'[inventaire de deploiement](docs/deployment-inventory.md).
 
-## Bascule et rollback
-
-La bascule est active : le marqueur `~/.config/agent-config/active` rend
-inoperants les `install.sh` et `update.sh` historiques, qui sourcent cette garde
-juste apres `set -euo pipefail` :
-
-```bash
-source "$HOME/src/agent-config/scripts/legacy-installer-guard.sh" || exit $?
-```
-
-La premiere etape d'un rollback est toujours de reactiver les anciens
-installateurs, avant toute restauration :
+## Mettre a jour
 
 ```bash
-scripts/cutover-marker.sh deactivate
-```
-
-Pour rebasculer ensuite : `scripts/cutover-marker.sh activate`, `./install.sh`,
-puis `./install.sh --check`.
-
-## Contrats de deploiement
-
-| Surface                                 | Strategie                                                 | Proprietaire                                        |
-| --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
-| Instructions globales                   | rendu `common + overlay`, copie                           | source                                              |
-| Skills Linux/WSL                        | liens par skill                                           | source                                              |
-| Skills Codex Windows                    | copies reelles                                            | source                                              |
-| Scripts Claude/Codex/Kimi               | dossier reel, liens par fichier commun ou natif           | source ; fichiers tiers preserves                   |
-| Scripts Codex Windows                   | copie reelle de l'ensemble commun + adaptateurs Codex     | source ; dossier gere par le manifeste              |
-| Claude `settings.json`                  | fusion JSON                                               | cles connues source, cles inconnues runtime         |
-| Codex `config.toml` Linux               | copie + preservation de `[hooks.state]` et `[projects.*]` | source + trust runtime                              |
-| Codex `config.toml` Windows             | seed-only                                                 | application                                         |
-| Codex `terra/luna/sol-high.config.toml` | copies reelles Linux et Windows                           | source, fichiers personnels d'autres noms preserves |
-| Kimi `config.toml`                      | fusion TOML ciblee                                        | permissions/hooks source, modele/providers runtime  |
-| OpenCode `opencode.json`                | copie mode `0600`                                         | source                                              |
-| OpenCode `~/.profile.local`             | bloc d'environnement fusionne                             | bloc source, reste runtime                          |
-| Credentials, sessions, caches, memoires | ignore                                                    | application                                         |
-
-Pour Claude, `permissions`, `model`, `hooks`, `statusLine`, `enabledPlugins` et
-`extraKnownMarketplaces` sont source-owned. Une cle top-level inconnue est
-preservee pendant la fusion.
-
-Pour Kimi, `default_permission_mode`, `merge_all_available_skills`,
-`[[permission.rules]]` et `[[hooks]]` sont source-owned. La fusion force
-`merge_all_available_skills = false` afin que le groupe Kimi et le hub generique
-soient charges sans agreger les repertoires Claude/Codex. `default_model`,
-providers, modeles et sections runtime restent ceux du fichier deployee
-lorsqu'il existe. Le fichier source sert de seed pour une premiere installation.
-La comparaison TOML est semantique : commentaires et mise en forme runtime ne
-declenchent pas de reecriture lorsque les valeurs sont identiques.
-
-Codex conserve Sol xhigh par defaut. Le modele choisi a la volee pour une tache
-prime sur ce defaut. Les profils alternatifs s'utilisent avec
-`codex --profile terra`, `codex --profile luna` et `codex --profile sol-high`.
-Depuis Codex 0.134, chaque profil est un fichier `<nom>.config.toml` voisin du
-fichier principal, sans table `[profiles.*]`. `tests/test-codex-profiles.sh`
-verifie leur deploiement et leur acceptation par la CLI installee, sous home
-temporaire sans appel de modele ; son absence produit un SKIP explicite.
-
-Le `config.toml` Windows existant reste intact. S'il contient encore des tables
-de profils legacy, leur migration doit etre faite dans cette configuration
-app-owned avant d'utiliser les profils ; ajouter les nouveaux fichiers ne suffit
-pas a rendre ces anciennes tables compatibles.
-
-OpenCode 1.3.13 decouvre sinon tous les skills Claude-only. Le bloc gere dans
-`~/.profile.local` exporte `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`; comme cette
-version desactive aussi le hub avec ce flag, les skills partages sont miroires
-par liens dans `~/.config/opencode/skills`. Le reste de `~/.profile.local` est
-preserve et sa sauvegarde reste hors Git dans `~/.config/agent-config/backups`.
-Ouvrir un nouveau shell (ou sourcer `~/.profile.local`) apres la premiere
-installation pour que le processus OpenCode herite de la variable.
-
-`opencode.json` declare `"formatter": {}` : la forme objet active les formateurs
-natifs (prettier, Biome, ruff, gofmt...) selon ce que le projet contient, et reste
-acceptee par OpenCode 1.3.13, qui refuse le booleen `true` du schema recent.
-
-## Dependances externes
-
-Deux submodules suivent explicitement leur branche `main` :
-
-- les huit skills Anthropic deployes uniquement pour Claude;
-- les skills promus par le manifest `.claude-plugin/plugin.json` de Matt
-  Pocock, deployes comme skills partages dans le hub et les miroirs natifs.
-
-`grill-with-docs` suit directement Matt Pocock avec `grilling` et
-`domain-modeling`; aucune adaptation locale n'est maintenue.
-
-Le manifest amont ne promeut que `engineering/` et `productivity/`.
-`upstreams/mattpocock-extra-skills.txt` ajoute les skills utilises hors de ces
-buckets — aujourd'hui `misc/` et `in-progress/`. Ils sont valides et deployes
-comme ceux du manifest, toujours depuis le submodule et jamais forkes; un
-chemin retire en amont fait echouer l'installation au lieu de disparaitre en
-silence.
-
-La CLI de mise a jour aligne les deux submodules sur `origin/main`, lance toute
-la suite de tests, puis installe par defaut :
-
-```bash
-uv run scripts/update_upstreams.py --help
+# Actualiser les sous-modules et tester, sans deployer.
 uv run scripts/update_upstreams.py --no-install
-uv run scripts/update_upstreams.py --install --dry-run
-uv run scripts/update_upstreams.py --install
+
+# Actualiser aussi le depot principal, tester puis installer.
+./update.sh
 ```
 
-Elle refuse de continuer si un submodule contient des modifications locales.
-Le pointeur Git du superprojet conserve le SHA exact du candidat. Si les tests
-echouent, ce candidat reste dans le worktree pour inspection mais rien n'est
-deploye; apres succes, le meme SHA est installe.
-`update.sh` tire d'abord le depot en fast-forward puis delegue a cette CLI.
+La mise a jour installe par defaut. Ses options `--dry-run` et `--check`
+concernent uniquement l'installation : elles n'empechent pas la mise a jour Git.
+Le [guide des scripts](scripts/README.md) detaille les options et les echecs.
 
-Les bootstraps de plugins Claude et Codex restent natifs. Les tests les exercent
-avec des CLI factices; `AGENT_CONFIG_SKIP_PLUGINS=1` les desactive lors d'un
-deploiement de diagnostic.
+## Contribuer
 
-## MCP declares nativement
+Lire [AGENTS.md](AGENTS.md), modifier les sources, puis executer :
 
-Les MCP ne sont pas rendus depuis un manifeste commun : leurs formats et leurs
-modes de lancement restent propres a chaque harness. Le tableau recense
-uniquement les serveurs declares dans les fichiers de ce depot; les MCP fournis
-par des plugins n'y figurent pas. Le serveur Unity de Codex reste
-`enabled = false`: son endpoint n'existe que pendant que l'editeur tourne, et il
-s'active par session avec `codex -c mcp_servers.unityMCP.enabled=true`.
+```bash
+bash tests/run-all.sh
+git diff --check
+```
 
-| Harness  | Source declarative                 | Serveurs declares         |
-| -------- | ---------------------------------- | ------------------------- |
-| Claude   | `harnesses/claude/settings.json`   | Linear                    |
-| Codex    | `harnesses/codex/config.toml`      | Playwright, Linear, Unity |
-| Kimi     | `harnesses/kimi/mcp.json`          | Context7, Linear          |
-| OpenCode | `harnesses/opencode/opencode.json` | aucun                     |
+La [procedure de validation](docs/configuration-validation.md) precise les
+controles CLI, la portabilite et les comparaisons de comportement avec modele.
+Les tests ne deploient pas dans les homes reels.
+
+`instructions/common.md` et les overlays definissent aussi le workflow global
+Pocock/Superpowers/autoship. Les fichiers `docs/agents/*.md` d'un projet peuvent
+le completer ; l'installateur ne cree rien dans ces projets.
+
+## Documentation operationnelle
+
+- [Inventaire de deploiement](docs/deployment-inventory.md) : sources, cibles,
+  proprietaires et invariants.
+- [Hooks](docs/hooks.md) : protocoles, erreurs, dependances et limites.
+- [Scripts de maintenance](scripts/README.md) : mise a jour, verrou legacy et
+  fusion Kimi.
+- [Validation](docs/configuration-validation.md) : preuves et limites des tests.
+
+Les anciens depots `claude-config`, `codex-config` et `kimi-config` restent
+inactifs derriere le marqueur `~/.config/agent-config/active`. Le
+[guide des scripts](scripts/README.md#gerer-le-verrou-des-anciens-depots) explique
+sa gestion ; le retirer ne restaure aucune configuration. Leur archivage reste
+soumis a validation explicite. Les plans et audits termines sont conserves dans
+l'historique Git, sans copie dans la documentation courante.

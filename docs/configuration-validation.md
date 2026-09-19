@@ -10,7 +10,7 @@ de comportement utilisent seulement les controles locaux pertinents.
 ```bash
 bash tests/run-all.sh
 (
-  for script in install.sh update.sh tests/*.sh harnesses/*/scripts/*.sh shared/scripts/*.sh; do
+  for script in install.sh update.sh tests/*.sh scripts/*.sh harnesses/*/scripts/*.sh shared/scripts/*.sh; do
     bash -n "$script" || exit 1
   done
 )

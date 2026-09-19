@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""Actualise les sous-modules de skills, teste le depot puis installe par defaut.
+
+Lancer depuis le projet avec ``uv run scripts/update_upstreams.py --help``.
+``--no-install`` limite les effets aux sources ; ``--dry-run`` et ``--check``
+concernent uniquement l'installation, apres une vraie mise a jour Git.
+Aucun commit, push ou retour automatique aux revisions precedentes n'est fait.
+Voir scripts/README.md pour les commandes et les effets de bord.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +26,8 @@ CONSOLE = Console()
 
 
 class Upstream(NamedTuple):
+    """Nom affiche et chemin du sous-module relatif a la racine du depot."""
+
     name: str
     path: Path
 
@@ -32,6 +42,8 @@ UPSTREAMS = (
 
 
 class CommandFailure(RuntimeError):
+    """Commande terminee en erreur, avec son code et sa sortie stdout/stderr."""
+
     def __init__(self, command: Sequence[str], returncode: int, output: str) -> None:
         self.command = tuple(command)
         self.returncode = returncode
@@ -40,6 +52,13 @@ class CommandFailure(RuntimeError):
 
 
 def run_command(command: Sequence[str], *, cwd: Path, verbose: bool = False) -> str:
+    """Execute les arguments sans shell dans cwd et renvoie stdout/stderr fusionnes.
+
+    Retire les espaces de fin de sortie ; verbose affiche commande et resultat.
+    Leve CommandFailure si le processus renvoie un code non nul. Les erreurs de
+    lancement (executable absent, par exemple) remontent directement comme OSError.
+    Les effets de bord dependent de la commande ; aucune annulation n'est faite.
+    """
     if verbose:
         CONSOLE.print(f"[dim]$ {shlex.join(command)}[/dim]")
     completed = subprocess.run(
@@ -59,6 +78,11 @@ def run_command(command: Sequence[str], *, cwd: Path, verbose: bool = False) -> 
 
 
 def revision(upstream: Upstream, *, required: bool, verbose: bool) -> str:
+    """Lit le SHA court de HEAD dans le sous-module, sans changer son checkout.
+
+    Sans .git et avec required=False, renvoie 'not initialized'. Sinon, tente
+    la lecture Git et laisse remonter CommandFailure si la commande echoue.
+    """
     checkout = ROOT / upstream.path
     if not (checkout / ".git").exists() and not required:
         return "not initialized"
@@ -70,6 +94,11 @@ def revision(upstream: Upstream, *, required: bool, verbose: bool) -> str:
 
 
 def ensure_clean(upstream: Upstream, *, verbose: bool) -> None:
+    """Refuse les modifications locales du sous-module, fichiers non suivis inclus.
+
+    Un sous-module non initialise est accepte : l'etape update le creera.
+    Leve ClickException si le checkout est sale, CommandFailure si Git echoue.
+    """
     checkout = ROOT / upstream.path
     if not (checkout / ".git").exists():
         return
@@ -85,6 +114,11 @@ def ensure_clean(upstream: Upstream, *, verbose: bool) -> None:
 
 
 def warn_if_superproject_dirty(*, verbose: bool) -> None:
+    """Signale les changements du depot principal sans bloquer la mise a jour.
+
+    Ils feront partie d'une installation demandee. Ne modifie aucun fichier ;
+    une erreur de lecture Git remonte comme CommandFailure.
+    """
     status = run_command(
         ["git", "status", "--porcelain"],
         cwd=ROOT,
@@ -98,6 +132,7 @@ def warn_if_superproject_dirty(*, verbose: bool) -> None:
 
 
 def render_summary(before: dict[str, str], after: dict[str, str]) -> None:
+    """Affiche les revisions avant/apres, indexees par nom de chaque UPSTREAMS."""
     table = Table(title="Upstream skills", show_header=True)
     table.add_column("Source", style="bold")
     table.add_column("Before")
@@ -143,7 +178,16 @@ def render_summary(before: dict[str, str], after: dict[str, str]) -> None:
 def cli(
     *, install: bool, only: str | None, check: bool, dry_run: bool, verbose: bool
 ) -> None:
-    """Update all configured upstream skill repositories."""
+    """Orchestre controles locaux, mise a jour Git, tests puis installation.
+
+    Tous les sous-modules declares dans UPSTREAMS sont actualises ; only limite
+    uniquement l'installation. check et dry_run sont exclusifs et, comme only,
+    exigent install=True. Sans option, install.sh ecrit dans les homes runtime.
+
+    Un echec de commande interrompt la suite avec son code de sortie. Les
+    changements deja effectues restent en place, y compris une mise a jour
+    partielle des sous-modules ou une installation partiellement appliquee.
+    """
     if check and dry_run:
         raise click.UsageError("--check and --dry-run are mutually exclusive")
     if not install and (only is not None or check or dry_run):
