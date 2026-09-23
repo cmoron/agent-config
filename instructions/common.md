@@ -115,6 +115,10 @@ un controle absent ou non execute n'est pas un succes (non applicable doit
 etre justifie). Toute modification, y compris formatage, doc ou correction CI,
 produit un nouveau candidat et invalide les preuves precedentes. Revalider
 avant livraison; ne jamais reutiliser un verdict pour un autre SHA.
+Une revue independante qui compile ou lance des tests utilise un
+repertoire de build distinct de celui du candidat (ex. `CARGO_TARGET_DIR`) :
+sinon l'outil de build peut executer les artefacts du reviewer a la place des
+sources.
 
 ## Pendant que tu codes
 

@@ -27,6 +27,8 @@ for harness in claude codex kimi opencode; do
   grep -q '^## GitHub et contexte Pocock' "$target"
   grep -q 'ready-for-agent' "$target"
   grep -q 'candidate_commit' "$target"
+  # A reviewer sharing the candidate's build output once ran its own binary.
+  grep -q 'repertoire de build distinct' "$target"
   if grep -qi 'sous huit heures' "$target"; then
     printf 'obsolete delegation threshold in %s\n' "$harness" >&2
     exit 1
