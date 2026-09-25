@@ -19,6 +19,16 @@
   `worker` prend une implementation bornee lorsque la delegation est retenue.
 - Une implementation critique reste dans l'agent principal ou utilise
   `critical`; une exploration read-only bornee utilise `explore`.
+- Fournir explicitement `fork_turns="none"` avec un brief autonome : objectif,
+  fichiers possedes, contraintes, controles et resultat attendu. Un historique
+  partage est une exception motivee; choisir alors le minimum de tours utile.
+- Confier a `explore` les recherches autonomes impliquant plusieurs fichiers;
+  garder dans le principal les lectures necessaires a l'arbitrage et
+  l'integration. Reutiliser les conclusions sourcees sans refaire l'exploration,
+  sauf contradiction ou changement du code concerne.
+- Borner chaque mission a un lot et demander un retour court avec les preuves.
+  Reutiliser un agent pour le meme lot; repartir avec un brief neuf quand le
+  perimetre change. Relancer une revue sur les seuls points modifies.
 - Ne paralleliser que des taches independantes et ne jamais faire modifier les
   memes fichiers par plusieurs agents.
 - L'agent principal arbitre l'architecture, integre et verifie.
@@ -48,7 +58,12 @@ sortie fichier. Utiliser directement `rtk read`, `rtk err`, `rtk log`,
 
 ### Contexte et memoire
 
-- `/clear` entre deux taches sans lien et `/compact Keep: ...` avant saturation.
+- A chaque frontiere de lot, faire le point sur le contexte et la consommation
+  disponible, en distinguant tokens en cache et hors cache. Regrouper les
+  lectures independantes et resumer les sorties volumineuses par script.
+- Preparer un relais court (decisions, fichiers, preuves, reste a faire) avant
+  `/compact Keep: ...` ou un nouveau fil; ne pas attendre la saturation.
+  `/clear` entre deux taches sans lien. Ne pas annoncer un compactage non execute.
 - La memoire native Codex vit sous `~/.codex/memories`.
 - Les instructions globales deployees sont generees. Pour une auto-amelioration
   globale, proposer le diff dans `agent-config/instructions/common.md` ou cet
