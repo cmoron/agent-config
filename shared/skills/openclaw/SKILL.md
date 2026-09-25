@@ -193,13 +193,16 @@ Pour les fichiers workspace (SOUL.md, AGENTS.md, etc.), les changements sont lus
 
 **On NE met PAS à jour openclaw via `npm i -g openclaw`.** Le mécanisme canonique est la commande CLI **`openclaw update`** (l'historique de la VM est plein de `openclaw update`).
 
-⚠️ Le `openclaw` du PATH interactif tape un **Node v18** → erreur _"Node v22+ required"_. Invoquer via Node v24 :
+⚠️ Le `openclaw` du PATH interactif tape un **Node v18** → erreur _"Node v22+ required"_. Charger NVM puis Node 24 :
 
 ```bash
-NODE=~/.nvm/versions/node/v24.13.1/bin/node
-DIST=~/.nvm/versions/node/v24.13.1/lib/node_modules/openclaw
-$NODE $DIST/dist/index.js update --dry-run        # prévisualiser
+export NVM_DIR=~/.nvm; source ~/.nvm/nvm.sh; nvm use 24.18.0
+openclaw update --channel stable --dry-run        # prévisualiser
 ```
+
+- Vérifier la contrainte Node de la cible avant : `npm view openclaw@<v> engines` (2026.9.x : `>=24.16 <25`).
+- Post-update : si le doctor plante en `ERR_MODULE_NOT_FOUND …/dist/doctor-*.js`, relancer `openclaw doctor` (l'ancien process importe le nouveau dist). Migrations « unfinished » → `openclaw doctor --fix --non-interactive` puis restart ; sauvegarder `openclaw.json` avant et relire le diff.
+- Le unit `openclaw-gateway.service` doit être en `600` : sinon l'update refuse de rafraîchir l'env service (`[unsafe-permissions]`).
 
 - **Canaux** : `--channel stable|beta|dev` (persisté dans `openclaw.json` → bloc `update`, vide = stable par défaut).
   - `stable` / `beta` → install **mode npm package** : `openclaw update` résout via le package manager, donc **limité à ce qui est publié** (la beta dist-tag peut pointer = stable). Notre install est en mode package (pas de `.git` dans le dist).
