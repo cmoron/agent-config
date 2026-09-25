@@ -41,6 +41,7 @@ done
 
 grep -q '^plugin marketplace add anthropics/claude-plugins-official$' "$AGENT_CONFIG_CLAUDE_LOG"
 grep -q '^plugin marketplace add DietrichGebert/ponytail$' "$AGENT_CONFIG_CLAUDE_LOG"
+grep -q '^plugin marketplace add openai/codex-plugin-cc$' "$AGENT_CONFIG_CLAUDE_LOG"
 grep -q '^plugin install context7@claude-plugins-official$' "$AGENT_CONFIG_CLAUDE_LOG"
 
 git config -f "$TEST_ROOT/.gitmodules" --get \

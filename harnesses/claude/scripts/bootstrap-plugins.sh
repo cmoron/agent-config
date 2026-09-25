@@ -17,10 +17,12 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
-# 1. Marketplaces (l'officiel est en général auto-enregistré, mais on force pour être sûr)
+# 1. Marketplaces déclarées dans settings.json (source unique, y compris l'officielle)
 echo "→ Marketplaces"
-claude plugin marketplace add anthropics/claude-plugins-official
-claude plugin marketplace add DietrichGebert/ponytail
+jq -r '.extraKnownMarketplaces[].source.repo' "$CONFIG_DIR/settings.json" \
+| while read -r repo; do
+    claude plugin marketplace add "$repo"
+done
 echo ""
 
 # 2. Plugins activés dans settings.json
