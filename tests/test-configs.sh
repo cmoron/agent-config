@@ -65,7 +65,7 @@ windows_config_hash="$(sha256sum "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml" |
 
 "$TEST_ROOT/install.sh" --only claude >/dev/null
 jq -e '
-  .model == "opus[1m]"
+  .model == "opus"
   and .runtimeState.keep == true
   and (.enabledPlugins["runtime-only@example"] == null)
   and ([.hooks[][]?.hooks[]?.command? // empty]
