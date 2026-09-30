@@ -10,7 +10,7 @@ l'historique Git.
 | Source                                        | Cible                                                                                                 | Strategie                                                                 |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `instructions/common.md` + overlay du harness | `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, `~/.kimi-code/AGENTS.md` | Rendu avec bandeau genere, copie                                          |
-| `shared/skills/` + selection Matt Pocock      | `~/.agents/skills` pour Codex/Kimi ; miroirs `~/.claude/skills` et `~/.config/opencode/skills`        | Liens par skill                                                           |
+| `shared/skills/`, skills prives + Matt Pocock | `~/.agents/skills` pour Codex/Kimi ; miroirs `~/.claude/skills` et `~/.config/opencode/skills`        | Liens par skill                                                           |
 | Allowlist Anthropic                           | `~/.claude/skills` uniquement                                                                         | Liens vers le sous-module Claude                                          |
 | `shared/scripts/*.sh` + scripts natifs        | `~/.{codex,claude,kimi-code}/scripts`                                                                 | Dossier reel, liens par fichier ; le natif remplace le commun de meme nom |
 | `shared/assets/`                              | `~/.{codex,claude,kimi-code}/assets`                                                                  | Lien de dossier                                                           |
@@ -22,6 +22,13 @@ Ses ressources utiles (references et scripts) sont deployees avec lui.
 vide et controlee par `tests/test-structure.sh` ; tout usage exige une
 justification ici. Codex et Kimi lisent le hub sans seconde copie des skills
 partages dans leur home natif.
+
+Les skills prives vivent hors de ce depot public, par defaut dans
+`~/src/agent-skills-private/skills` (depot prive `cmoron/agent-skills-private`),
+autrement dans `AGENT_CONFIG_PRIVATE_SKILLS`. Present, ce dossier est deploye comme
+`shared/skills` (hub, miroirs, copie Windows) ; absent, il est ignore et ses anciens
+liens sont purges. Un nom deja pris par un skill d'agent-config fait echouer
+l'installation.
 
 La selection Matt Pocock vient de `.claude-plugin/plugin.json` dans le
 sous-module, completee par `upstreams/mattpocock-extra-skills.txt`. Les chemins

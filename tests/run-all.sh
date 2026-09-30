@@ -20,6 +20,7 @@ tests=(
   test-validate-skills.sh
   test-python.sh
   test-install.sh
+  test-private-skills.sh
   test-instructions.sh
   test-review-candidate.sh
   test-configs.sh

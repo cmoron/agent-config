@@ -28,6 +28,8 @@ OPENCODE_DIR="${AGENT_CONFIG_OPENCODE_DIR:-$HOME/.config/opencode}"
 AGENTS_DIR="${AGENT_CONFIG_AGENTS_DIR:-$HOME/.agents}"
 STATE_DIR="${AGENT_CONFIG_STATE_DIR:-$HOME/.config/agent-config}"
 PROFILE_LOCAL="${AGENT_CONFIG_PROFILE_LOCAL:-$HOME/.profile.local}"
+# Skills kept out of this public repository; deployed like shared/skills when present.
+PRIVATE_SKILLS="${AGENT_CONFIG_PRIVATE_SKILLS:-$HOME/src/agent-skills-private/skills}"
 PROFILE_BLOCK_BEGIN='# >>> agent-config: opencode >>>'
 PROFILE_BLOCK_END='# <<< agent-config: opencode <<<'
 
@@ -176,6 +178,7 @@ validate_runtime_paths() {
   validate_safe_path AGENT_CONFIG_AGENTS_DIR "$AGENTS_DIR"
   validate_safe_path AGENT_CONFIG_STATE_DIR "$STATE_DIR"
   validate_safe_path AGENT_CONFIG_PROFILE_LOCAL "$PROFILE_LOCAL"
+  validate_safe_path AGENT_CONFIG_PRIVATE_SKILLS "$PRIVATE_SKILLS"
   if [ -n "$WINDOWS_CODEX_DIR" ]; then
     validate_safe_path AGENT_CONFIG_WINDOWS_CODEX_DIR "$WINDOWS_CODEX_DIR"
   fi
@@ -217,7 +220,7 @@ managed_link() {
   [ -L "$link" ] || return 1
   destination="$(readlink "$link")"
   case "$destination" in
-    "$ROOT"|"$ROOT"/*) return 0 ;;
+    "$ROOT"|"$ROOT"/*|"$PRIVATE_SKILLS"/*) return 0 ;;
   esac
   for legacy in "${LEGACY_ROOTS[@]}"; do
     case "$destination" in
@@ -930,7 +933,7 @@ shared_skill_entries() {
   local source
   local name
 
-  for source in "$ROOT/shared/skills"/*; do
+  for source in "$ROOT/shared/skills"/* "$PRIVATE_SKILLS"/*; do
     [ -d "$source" ] || continue
     name="$(basename "$source")"
     printf '%s\t%s\n' "$name" "$source"
