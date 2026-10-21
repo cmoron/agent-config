@@ -42,3 +42,16 @@ gh run view <id> --log-failed    # logs des jobs échoués
 
 Toujours vérifier le run avec `gh run watch` et confirmer le healthcheck avant de
 déclarer un déploiement réussi.
+
+## Pièges
+
+- `ssh host 'pkill -f motif'` tue sa propre session : le motif figure dans la
+  ligne de commande distante. Écrire `pkill -f '[m]otif'`.
+- `docker logs --since` relit tout le fichier de log avant de filtrer (charge et
+  blocage sur un gros conteneur). Utiliser `docker logs --tail N`.
+- Commande sudo confiée à l'humain qui fait `git pull` puis `cp` d'une config :
+  merger la PR AVANT de donner la commande, et y mettre un garde-fou
+  (`grep -q <marqueur> fichier &&`). `nginx -t` valide la syntaxe, pas le
+  contenu : un vieux modèle HTTP-only est passé et a cassé le HTTPS de prod.
+- Derrière le nginx de l'hôte (proxy HTTP/1.0), tester gzip et les en-têtes
+  via l'URL publique ou `curl --http1.0`, pas en HTTP/1.1 sur le conteneur.
