@@ -74,8 +74,12 @@ CLI installee dans un home temporaire, sans appel de modele.
 | `agents/` si present            | `~/.claude/agents`        | Liens par fichier, artefacts tiers preserves |
 | `config/ccstatusline/`          | `~/.config/ccstatusline`  | Lien de dossier                              |
 
-`permissions`, `model`, `hooks`, `statusLine`, `enabledPlugins` et
-`extraKnownMarketplaces` sont entierement source-owned. Les cles top-level
+`permissions`, `autoMode`, `model`, `hooks`, `statusLine`, `enabledPlugins` et
+`extraKnownMarketplaces` sont entierement source-owned. Le mode par defaut est
+`auto` : le classifieur refuse puis laisse l'agent continuer, sans prompt; les
+regles `deny` restent appliquees avant lui. `autoMode` n'est lu que depuis
+`~/.claude/settings.json`; une entree ajoutee via `/permissions` ou
+`/auto-mode-setup` se reporte ici, sinon `--check` la signale. Les cles top-level
 inconnues sont preservees. La comparaison JSON est semantique : le reordonnancement
 par l'application ne provoque pas de derive.
 

@@ -575,6 +575,7 @@ render_claude_settings() {
       | .[1] as $source
       | ($runtime * $source)
       | .permissions = $source.permissions
+      | .autoMode = $source.autoMode
       | .model = $source.model
       | .hooks = $source.hooks
       | .statusLine = $source.statusLine

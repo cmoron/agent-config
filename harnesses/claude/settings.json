@@ -36,7 +36,17 @@
       "Bash(git clean -fd *)",
       "Bash(prisma reset *)"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "auto"
+  },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Source control: github.com/cmoron and all repos under it (Cyril's own repositories)"
+    ],
+    "allow": [
+      "$defaults",
+      "Merging a pull request in a github.com/cmoron repository is allowed once its CI checks pass: Cyril is the sole maintainer and delegates delivery to the agent"
+    ]
   },
   "model": "opus",
   "hooks": {
@@ -173,7 +183,6 @@
     }
   },
   "effortLevel": "xhigh",
-  "skipDangerousModePermissionPrompt": true,
   "mcpServers": {
     "linear": {
       "type": "http",

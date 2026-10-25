@@ -14,6 +14,7 @@ cat >"$HOME/.claude/settings.json" <<'EOF'
 {
   "model": "runtime-model",
   "runtimeState": {"keep": true},
+  "autoMode": {"allow": ["runtime-only rule"]},
   "enabledPlugins": {"runtime-only@example": true}
 }
 EOF
@@ -67,6 +68,11 @@ windows_config_hash="$(sha256sum "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml" |
 jq -e '
   .model == "opus"
   and .runtimeState.keep == true
+  and .permissions.defaultMode == "auto"
+  and has("skipDangerousModePermissionPrompt") == false
+  and .autoMode.environment[0] == "$defaults"
+  and .autoMode.allow[0] == "$defaults"
+  and (.autoMode.allow | index("runtime-only rule") == null)
   and (.enabledPlugins["runtime-only@example"] == null)
   and ([.hooks[][]?.hooks[]?.command? // empty]
        | all(contains("/src/claude-config") | not))
