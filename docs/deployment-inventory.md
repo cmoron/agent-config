@@ -70,7 +70,6 @@ CLI installee dans un home temporaire, sans appel de modele.
 | Source sous `harnesses/claude/` | Cible                     | Strategie                                    |
 | ------------------------------- | ------------------------- | -------------------------------------------- |
 | `settings.json`                 | `~/.claude/settings.json` | Fusion JSON, mode `0600`                     |
-| `commands/`                     | `~/.claude/commands`      | Liens par fichier                            |
 | `agents/` si present            | `~/.claude/agents`        | Liens par fichier, artefacts tiers preserves |
 | `config/ccstatusline/`          | `~/.config/ccstatusline`  | Lien de dossier                              |
 
@@ -88,6 +87,8 @@ par l'application ne provoque pas de derive.
 `harnesses/opencode/opencode.json` est copie en mode `0600` sous
 `~/.config/opencode/opencode.json`. Il conserve le provider Ollama et la forme
 `"formatter": {}` acceptee par la CLI testee, pour les formateurs natifs.
+Le bloc `permission` autorise `external_directory` et `doom_loop`, seuls
+defauts en `ask`, et porte la deny list bash (derniere regle qui matche gagne).
 
 `harnesses/opencode/env.sh` est insere dans un bloc gere de `~/.profile.local` ;
 le reste du fichier est preserve. Le flag `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`
@@ -102,7 +103,8 @@ requete au modele Ollama.
 `harnesses/kimi/config.toml` est fusionne vers `~/.kimi-code/config.toml` en
 mode `0600`. Seuls `default_permission_mode`, `merge_all_available_skills`,
 `[[permission.rules]]` et `[[hooks]]` sont imposes par le depot. La source fixe
-`merge_all_available_skills = false` ; modeles, providers et autres sections
+`default_permission_mode = "auto"` (Never Ask; `yolo` demande encore avant les
+actions sensibles) et `merge_all_available_skills = false` ; modeles, providers et autres sections
 runtime sont preserves. La source sert de seed lors de la premiere installation.
 La comparaison TOML est semantique ; les limites du mergeur textuel sont dans
 le [guide des scripts](../scripts/README.md#comprendre-la-fusion-kimi).

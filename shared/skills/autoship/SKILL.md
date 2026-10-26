@@ -1,6 +1,8 @@
 ---
 name: autoship
 description: "Livrer une petite feature/fix en autonomie sur demande explicite : implementation, preuves sur un candidat Git, revue independante et livraison ou PR a relire. Utiliser pour autoship ou fire-and-forget, pas pour une implementation interactive ordinaire."
+disable-model-invocation: true
+argument-hint: <description de la feature/fix>
 ---
 
 # Autoship

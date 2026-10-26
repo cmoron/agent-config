@@ -9,8 +9,8 @@
 - Le modele principal garde architecture, arbitrages et debug difficile.
   Utiliser `explore` pour la lecture, ou `coder` sur le modele secondaire pour
   un travail mecanique lorsqu'il est configure.
-- Le modele secondaire est experimental. S'il manque, les sous-agents heritent
-  du modele principal.
+- Sans `[secondary_model]` configure, les sous-agents heritent du modele
+  principal.
 
 ### Outils
 

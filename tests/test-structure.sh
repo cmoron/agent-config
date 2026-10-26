@@ -37,8 +37,6 @@ required_paths=(
   harnesses/claude/instructions.overlay.md
   harnesses/claude/settings.json
   harnesses/claude/config/ccstatusline/settings.json
-  harnesses/claude/commands/autoship.md
-  harnesses/claude/commands/commit.md
   harnesses/codex/instructions.overlay.md
   harnesses/codex/config.toml
   harnesses/codex/hooks.json
@@ -123,5 +121,9 @@ if rg -n \
   printf '%s\n' 'legacy repository identity remains in deployable content' >&2
   exit 1
 fi
+
+# autoship livre et merge : seul l'utilisateur peut le declencher.
+grep -q '^disable-model-invocation: true$' "$ROOT/shared/skills/autoship/SKILL.md"
+[ ! -e "$ROOT/harnesses/claude/commands" ]
 
 printf 'structure tests: PASS\n'

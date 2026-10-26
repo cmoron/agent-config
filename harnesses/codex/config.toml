@@ -6,7 +6,6 @@
 # Reserver max aux blocages reels, jamais comme cout fixe de chaque session.
 model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
-personality = "pragmatic"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 notify = ["/bin/sh", "-lc", 'exec "$HOME/.codex/scripts/notify-sound.sh"']

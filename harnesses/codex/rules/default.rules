@@ -1,10 +1,18 @@
-# Persistent safety rules matching Claude Code's bypass-permissions guardrails.
+# Persistent safety rules mirroring Claude Code's deny list. Prefix rules miss
+# equivalent spellings (e.g. `git push origin +main`): a guardrail, not a sandbox.
 
 prefix_rule(
-    pattern = ["rm", "-rf"],
+    pattern = [["rm", "/bin/rm"], ["-rf", "-fr", "-Rf", "-rF"]],
     decision = "forbidden",
     justification = "Use a scoped non-force removal command instead.",
-    match = ["rm -rf /", "rm -rf .", "rm -rf build"],
+    match = ["rm -rf /", "rm -fr .", "/bin/rm -rf build"],
+)
+
+prefix_rule(
+    pattern = [["rm", "/bin/rm"], ["-r", "-R"], "-f"],
+    decision = "forbidden",
+    justification = "Use a scoped non-force removal command instead.",
+    match = ["rm -r -f .", "rm -R -f build"],
 )
 
 prefix_rule(
@@ -15,10 +23,10 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["git", "push", ["--force", "-f"]],
+    pattern = ["git", "push", ["--force", "-f", "--force-with-lease"]],
     decision = "forbidden",
     justification = "Use a normal push or review a force-with-lease command manually.",
-    match = ["git push --force origin main", "git push -f origin main"],
+    match = ["git push --force origin main", "git push --force-with-lease origin main"],
     not_match = ["git push origin main"],
 )
 
@@ -30,10 +38,10 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["git", "clean", "-fd"],
+    pattern = ["git", "clean", ["-f", "-fd", "-df", "-fdx", "-dfx", "-fx", "-xf"]],
     decision = "forbidden",
     justification = "Review untracked files and remove only the intended paths.",
-    match = ["git clean -fd"],
+    match = ["git clean -fd", "git clean -fdx"],
 )
 
 prefix_rule(
@@ -51,8 +59,15 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["prisma", "reset"],
+    pattern = ["prisma", "migrate", "reset"],
     decision = "forbidden",
     justification = "Use an explicit migration or reset the database manually after review.",
-    match = ["prisma reset"],
+    match = ["prisma migrate reset --force"],
+)
+
+prefix_rule(
+    pattern = [["bunx", "npx"], "prisma", "migrate", "reset"],
+    decision = "forbidden",
+    justification = "Use an explicit migration or reset the database manually after review.",
+    match = ["bunx prisma migrate reset"],
 )

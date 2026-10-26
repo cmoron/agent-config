@@ -64,11 +64,17 @@ chmod 644 "$HOME/.config/opencode/opencode.json"
 cp "$TEST_ROOT/tests/fixtures/windows-config.toml" "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml"
 windows_config_hash="$(sha256sum "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml" | awk '{print $1}')"
 
+mkdir -p "$HOME/.claude/commands"
+ln -s "$TEST_ROOT/harnesses/claude/commands/commit.md" "$HOME/.claude/commands/commit.md"
+
 "$TEST_ROOT/install.sh" --only claude >/dev/null
 jq -e '
   .model == "opus"
   and .runtimeState.keep == true
   and .permissions.defaultMode == "auto"
+  and has("includeCoAuthoredBy") == false
+  and .attribution == {"commit": "", "pr": ""}
+  and (.permissions.deny | index("Bash(prisma migrate reset *)") != null)
   and has("skipDangerousModePermissionPrompt") == false
   and .autoMode.environment[0] == "$defaults"
   and .autoMode.allow[0] == "$defaults"
@@ -88,12 +94,8 @@ assert_link_to "$HOME/.claude/scripts/notify-sound.sh" \
 assert_link_to "$HOME/.claude/scripts/reflect-nudge.sh" \
   "$TEST_ROOT/harnesses/claude/scripts/reflect-nudge.sh"
 assert_link_to "$HOME/.claude/assets" "$TEST_ROOT/shared/assets"
-assert_link_to \
-  "$HOME/.claude/commands/autoship.md" \
-  "$TEST_ROOT/harnesses/claude/commands/autoship.md"
-assert_link_to \
-  "$HOME/.claude/commands/commit.md" \
-  "$TEST_ROOT/harnesses/claude/commands/commit.md"
+# Commands were merged into skills: stale managed links must be pruned.
+[ ! -e "$HOME/.claude/commands/commit.md" ] && [ ! -L "$HOME/.claude/commands/commit.md" ]
 assert_link_to "$HOME/.config/ccstatusline" "$TEST_ROOT/harnesses/claude/config/ccstatusline"
 if rg -n 'src/(claude-config|codex-config|kimi-config)' \
   "$HOME/.claude/settings.json" "$HOME/.claude/scripts/notify-sound.sh"; then
@@ -162,7 +164,8 @@ assert_dir "$AGENT_CONFIG_WINDOWS_CODEX_DIR/agents"
 
 "$TEST_ROOT/install.sh" --only kimi >/dev/null
 grep -q '^default_model = "runtime/model"$' "$HOME/.kimi-code/config.toml"
-grep -q '^default_permission_mode = "yolo"$' "$HOME/.kimi-code/config.toml"
+grep -q '^default_permission_mode = "auto"$' "$HOME/.kimi-code/config.toml"
+grep -q '^pattern = "Bash(prisma migrate reset \*)"$' "$HOME/.kimi-code/config.toml"
 grep -q '^merge_all_available_skills = false$' "$HOME/.kimi-code/config.toml"
 grep -q '^\[providers.runtime\]$' "$HOME/.kimi-code/config.toml"
 grep -q '^\[runtime.extra\]$' "$HOME/.kimi-code/config.toml"
@@ -204,6 +207,10 @@ fi
 jq -S . "$TEST_ROOT/harnesses/opencode/opencode.json" >"$TEST_TMP/source-opencode.json"
 jq -S . "$HOME/.config/opencode/opencode.json" >"$TEST_TMP/runtime-opencode.json"
 cmp "$TEST_TMP/source-opencode.json" "$TEST_TMP/runtime-opencode.json"
+# Zero-prompt goal: the two ask-by-default permissions are allowed, deny rules kept.
+jq -e '.permission.external_directory == "allow" and .permission.doom_loop == "allow"
+  and .permission.bash["*"] == "allow" and .permission.bash["git reset --hard*"] == "deny"' \
+  "$HOME/.config/opencode/opencode.json" >/dev/null
 [ "$(path_mode "$HOME/.config/opencode/opencode.json")" = 600 ]
 
 if ! "$TEST_ROOT/install.sh" --check >"$TEST_TMP/check.out" 2>&1; then

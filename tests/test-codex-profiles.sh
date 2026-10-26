@@ -25,6 +25,17 @@ if command -v codex >/dev/null 2>&1; then
     ) >"$TEST_TMP/$profile.json"
     jq -e 'type == "array"' "$TEST_TMP/$profile.json" >/dev/null
   done
+  rules="$TEST_ROOT/harnesses/codex/rules/default.rules"
+  for cmd in "rm -fr ." "rm -r -f ." "/bin/rm -rf ." "git clean -fdx" \
+    "git push --force-with-lease origin main" "prisma migrate reset" \
+    "bunx prisma migrate reset"; do
+    # shellcheck disable=SC2086
+    (cd "$TEST_TMP" && codex execpolicy check --rules "$rules" $cmd) |
+      jq -e '.decision == "forbidden"' >/dev/null || {
+      printf 'codex rules allow: %s\n' "$cmd" >&2
+      exit 1
+    }
+  done
 else
   printf '%s\n' 'SKIP native Codex profile probe: codex is not installed'
 fi

@@ -693,12 +693,14 @@ deploy_named_files() {
   local name
 
   ensure_directory "$harness" "$target_dir"
-  [ -d "$source_dir" ] || return 0
-  for source in "$source_dir"/*; do
-    [ -f "$source" ] || continue
-    name="$(basename "$source")"
-    names+=("$name")
-  done
+  # A removed source directory still prunes the links it used to provide.
+  if [ -d "$source_dir" ]; then
+    for source in "$source_dir"/*; do
+      [ -f "$source" ] || continue
+      name="$(basename "$source")"
+      names+=("$name")
+    done
+  fi
   prune_skill_links "$harness" "$target_dir" "${names[@]}"
   for name in "${names[@]}"; do
     deploy_link "$harness" "$source_dir/$name" "$target_dir/$name" "$root"

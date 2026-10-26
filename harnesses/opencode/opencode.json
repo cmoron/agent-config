@@ -16,5 +16,29 @@
         "baseURL": "http://127.0.0.1:11434/v1"
       }
     }
+  },
+  "permission": {
+    "external_directory": "allow",
+    "doom_loop": "allow",
+    "bash": {
+      "*": "allow",
+      "rm -rf /*": "deny",
+      "rm -rf ~*": "deny",
+      "rm -rf .": "deny",
+      "rm -fr *": "deny",
+      "git push --force*": "deny",
+      "git push -f *": "deny",
+      "git reset --hard*": "deny",
+      "git clean -f*": "deny",
+      "sudo *": "deny",
+      "dd *": "deny",
+      "shutdown *": "deny",
+      "reboot *": "deny",
+      "curl * | sh": "deny",
+      "wget * | sh": "deny",
+      "chmod 777 *": "deny",
+      "prisma migrate reset*": "deny",
+      "bunx prisma migrate reset*": "deny"
+    }
   }
 }
