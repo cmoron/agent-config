@@ -58,5 +58,5 @@ Utiliser `rtk proxy` lorsqu'un programme exige les bytes exacts, par exemple
 pour appliquer un patch ou calculer un checksum. Ne pas relancer `rtk init` :
 il ecrit dans la config generee par agent-config, qui l'ecraserait.
 
-Le Stop hook `scripts/reflect-nudge.sh` rappelle l'auto-amelioration une fois par
-session si du travail a eu lieu.
+Claude Code n'a pas de Stop hook de rappel : faire le point d'auto-amelioration
+aux frontieres de tache.

@@ -91,8 +91,8 @@ assert_link_to "$HOME/.claude/scripts/protect-env.sh" \
   "$TEST_ROOT/shared/scripts/protect-env.sh"
 assert_link_to "$HOME/.claude/scripts/notify-sound.sh" \
   "$TEST_ROOT/shared/scripts/notify-sound.sh"
-assert_link_to "$HOME/.claude/scripts/reflect-nudge.sh" \
-  "$TEST_ROOT/harnesses/claude/scripts/reflect-nudge.sh"
+[ ! -e "$HOME/.claude/scripts/reflect-nudge.sh" ]
+[ ! -L "$HOME/.claude/scripts/reflect-nudge.sh" ]
 assert_link_to "$HOME/.claude/assets" "$TEST_ROOT/shared/assets"
 # Commands were merged into skills: stale managed links must be pruned.
 [ ! -e "$HOME/.claude/commands/commit.md" ] && [ ! -L "$HOME/.claude/commands/commit.md" ]
@@ -195,8 +195,8 @@ assert_link_to "$HOME/.kimi-code/scripts/protect-env.sh" \
   "$TEST_ROOT/shared/scripts/protect-env.sh"
 assert_link_to "$HOME/.kimi-code/scripts/notify-sound.sh" \
   "$TEST_ROOT/shared/scripts/notify-sound.sh"
-assert_link_to "$HOME/.kimi-code/scripts/reflect-nudge.sh" \
-  "$TEST_ROOT/harnesses/kimi/scripts/reflect-nudge.sh"
+[ ! -e "$HOME/.kimi-code/scripts/reflect-nudge.sh" ]
+[ ! -L "$HOME/.kimi-code/scripts/reflect-nudge.sh" ]
 assert_link_to "$HOME/.kimi-code/assets" "$TEST_ROOT/shared/assets"
 if rg -n 'src/(claude-config|codex-config|kimi-config)' \
   "$HOME/.kimi-code/config.toml" "$HOME/.kimi-code/scripts/notify-sound.sh"; then

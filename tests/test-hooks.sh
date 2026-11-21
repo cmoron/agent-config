@@ -164,33 +164,18 @@ done
 printf '%s' '{"tool_input":{"command":"*** Begin Patch\n*** Update File: safe.py\n*** End Patch"}}' \
   | "$codex_protect" | jq -e '. == {}' >/dev/null
 
-# Stop nudge behaviour deliberately differs by harness. Markers stay in the
-# test TMPDIR, never below the real /tmp.
-reflect_workspace="$TEST_TMP/reflect-repo"
-mkdir -p "$reflect_workspace"
-git -C "$reflect_workspace" init -q
-printf dirty >"$reflect_workspace/dirty"
-export TMPDIR="$TEST_TMP/markers"
-mkdir -p "$TMPDIR"
-claude_reflect="$(jq -cn --arg cwd "$reflect_workspace" '{session_id: "claude-test", cwd: $cwd, stop_hook_active: false}')"
-printf '%s' "$claude_reflect" | "$HOME/.claude/scripts/reflect-nudge.sh" >"$TEST_TMP/reflect.out"
-jq -e '.hookSpecificOutput.hookEventName == "Stop"' "$TEST_TMP/reflect.out" >/dev/null
-printf '%s' "$claude_reflect" | "$HOME/.claude/scripts/reflect-nudge.sh" >"$TEST_TMP/reflect.out"
-[ ! -s "$TEST_TMP/reflect.out" ]
-
-kimi_reflect="$(jq -cn --arg cwd "$reflect_workspace" '{session_id: "kimi-test", cwd: $cwd}')"
-set +e
-printf '%s' "$kimi_reflect" | "$HOME/.kimi-code/scripts/reflect-nudge.sh" >"$TEST_TMP/reflect.out" 2>"$TEST_TMP/reflect.err"
-status=$?
-set -e
-[ "$status" -eq 2 ] && [ -s "$TEST_TMP/reflect.err" ]
-set +e
-printf '%s' "$kimi_reflect" | "$HOME/.kimi-code/scripts/reflect-nudge.sh" >"$TEST_TMP/reflect.out" 2>"$TEST_TMP/reflect.err"
-status=$?
-set -e
-[ "$status" -eq 0 ] && [ ! -s "$TEST_TMP/reflect.err" ]
-[ -f "$TMPDIR/kimi-reflect-kimi-test" ]
-[ ! -e /tmp/kimi-reflect-kimi-test ]
+# Le nudge Stop d'auto-amelioration est retire : il partait sur un working tree
+# deja sale, avant toute repetition, et remplacait la reponse finale en headless.
+for harness in claude kimi; do
+  [ ! -e "$ROOT/harnesses/$harness/scripts/reflect-nudge.sh" ] || {
+    printf '%s\n' "$harness reflect-nudge.sh must stay removed" >&2
+    exit 1
+  }
+done
+if grep -n 'reflect-nudge' "$ROOT/harnesses/claude/settings.json" "$ROOT/harnesses/kimi/config.toml"; then
+  printf '%s\n' 'a Stop hook still references reflect-nudge.sh' >&2
+  exit 1
+fi
 
 # The shared player receives its asset path from the deployed harness script.
 export HOOK_LOG="$TEST_TMP/sound.log"

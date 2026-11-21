@@ -40,5 +40,5 @@ echoue, verifier qu'il ne s'agit pas du binaire Rust Type Kit homonyme.
   globale, proposer le diff dans `agent-config/instructions/common.md` ou cet
   overlay, jamais dans `~/.kimi-code/AGENTS.md`.
 
-Le Stop hook `scripts/reflect-nudge.sh` rappelle l'auto-amelioration une fois par
-session si du travail a eu lieu.
+Kimi n'a pas de Stop hook de rappel : faire le point d'auto-amelioration aux
+frontieres de tache.

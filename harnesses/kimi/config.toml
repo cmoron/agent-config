@@ -210,12 +210,6 @@ event = "Stop"
 command = "$HOME/.kimi-code/scripts/notify-sound.sh"
 timeout = 10
 
-# Backstop auto-amélioration, 1×/session (cf. AGENTS.md § Auto-amélioration)
-[[hooks]]
-event = "Stop"
-command = "$HOME/.kimi-code/scripts/reflect-nudge.sh"
-timeout = 10
-
 # Son quand une tâche de fond se termine
 [[hooks]]
 event = "Notification"
