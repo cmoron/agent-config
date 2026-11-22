@@ -1,7 +1,7 @@
 # agent-config
 
-Source declarative unique des configurations Codex, Claude Code, OpenCode et
-Kimi Code de Cyril. Les homes runtime sont produits par `install.sh` ; les
+Source declarative unique des configurations Codex, Claude Code, OpenCode
+et Pi de Cyril. Les homes runtime sont produits par `install.sh` ; les
 modifications se font ici.
 
 ## Organisation
@@ -9,7 +9,7 @@ modifications se font ici.
 | Chemin                                | Contenu                                                          |
 | ------------------------------------- | ---------------------------------------------------------------- |
 | `instructions/`                       | Socle comportemental commun, compose avec un overlay par harness |
-| `harnesses/<name>/`                   | Configurations et adaptations natives                            |
+| `harnesses/<name>/`                   | Configurations natives : `claude`, `codex`, `opencode`, `pi`     |
 | `shared/skills/`                      | Skills locaux, chacun en un seul exemplaire                      |
 | `shared/scripts/` et `shared/assets/` | Actions de hooks et son communs                                  |
 | `upstreams/`                          | Skills Matt Pocock en sous-module et selection complementaire    |
@@ -36,11 +36,13 @@ git submodule update --init --recursive
 ./install.sh --check
 ```
 
-`--only codex|claude|opencode|kimi` limite la cible.
+`--only codex|claude|opencode|pi` limite la cible.
 `--instructions-only` ne rend que les instructions ; il se combine avec
 `--only`, `--dry-run` et `--check`. Son controle ne couvre que ces fichiers.
 `AGENT_CONFIG_SKIP_PLUGINS=1` desactive les bootstraps de plugins pendant une
 installation. Les sauvegardes precedent le remplacement des fichiers tiers.
+Une marketplace locale (source `directory`) n'est enregistree, avec ses plugins,
+que si son dossier existe sur la machine : `goblin-hood` vit sur la devbox seule.
 
 Les fichiers reecrits par les applications sont copies ou fusionnes, jamais
 symlinkes vers Git. Codex Windows recoit de vrais fichiers et conserve son
@@ -61,6 +63,14 @@ uv run scripts/update_upstreams.py --no-install
 La mise a jour installe par defaut. Ses options `--dry-run` et `--check`
 concernent uniquement l'installation : elles n'empechent pas la mise a jour Git.
 Le [guide des scripts](scripts/README.md) detaille les options et les echecs.
+
+Les paquets Pi sont epingles dans `harnesses/pi/settings.json` et suivis a part :
+
+```bash
+scripts/update-pi-packages.sh           # liste les versions plus recentes
+scripts/update-pi-packages.sh --apply   # reecrit les epingles
+pi update --extensions && ./install.sh --only pi && bash scripts/pi-smoke.sh
+```
 
 ## Contribuer
 
@@ -84,8 +94,7 @@ le completer ; l'installateur ne cree rien dans ces projets.
 - [Inventaire de deploiement](docs/deployment-inventory.md) : sources, cibles,
   proprietaires et invariants.
 - [Hooks](docs/hooks.md) : protocoles, erreurs, dependances et limites.
-- [Scripts de maintenance](scripts/README.md) : mise a jour, verrou legacy et
-  fusion Kimi.
+- [Scripts de maintenance](scripts/README.md) : mise a jour et verrou legacy.
 - [Validation](docs/configuration-validation.md) : preuves et limites des tests.
 
 Les anciens depots `claude-config`, `codex-config` et `kimi-config` restent

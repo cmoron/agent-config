@@ -6,9 +6,8 @@ description: Pour gérer les projets Linear de l'usine à SaaS — issues, sprin
 # Linear — Usine à SaaS (Cyril + Estelle)
 
 Linear est utilisé pour gérer les projets de l'usine à SaaS.
-Le MCP utilisé est `linear`, déclaré nativement par harness en HTTP sur
-`https://mcp.linear.app/mcp`; il gère les appels API via OAuth. Le connecteur
-claude.ai Linear fait doublon et n'est pas la référence.
+Sous Claude Code, Linear passe par le connecteur claude.ai. Codex déclare
+le MCP `linear` en HTTP sur `https://mcp.linear.app/mcp`, avec OAuth.
 Ce skill documente les conventions d'usage.
 
 ## Équipe

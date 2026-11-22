@@ -8,12 +8,14 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/test-lib.sh"
 new_test_home
 trap cleanup_test_home EXIT
 
-mkdir -p "$HOME/.claude" "$HOME/.codex" "$HOME/.kimi-code" "$HOME/.config/opencode"
+mkdir -p "$HOME/.claude" "$HOME/.codex" "$HOME/.config/opencode"
 
 cat >"$HOME/.claude/settings.json" <<'EOF'
 {
   "model": "runtime-model",
   "runtimeState": {"keep": true},
+  "env": {"CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"},
+  "mcpServers": {"linear": {"type": "http", "url": "https://mcp.linear.app/mcp"}},
   "autoMode": {"allow": ["runtime-only rule"]},
   "enabledPlugins": {"runtime-only@example": true}
 }
@@ -35,44 +37,37 @@ trusted_hash = "runtime-hash"
 trust_level = "trusted"
 EOF
 
-cat >"$HOME/.kimi-code/config.toml" <<'EOF'
-default_model = "runtime/model"
-default_permission_mode = "ask"
-merge_all_available_skills = true
-
-[providers.runtime]
-type = "runtime"
-api_key = ""
-
-[runtime.extra]
-keep = true
-
-[[permission.rules]]
-decision = "allow"
-scope = "user"
-pattern = "Bash(echo old)"
-
-[[hooks]]
-event = "Stop"
-command = "/old/hook.sh"
-timeout = 1
-EOF
-
 cp "$TEST_ROOT/harnesses/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
 chmod 644 "$HOME/.config/opencode/opencode.json"
 
 cp "$TEST_ROOT/tests/fixtures/windows-config.toml" "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml"
 windows_config_hash="$(sha256sum "$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml" | awk '{print $1}')"
 
-mkdir -p "$HOME/.claude/commands"
+mkdir -p "$HOME/.claude/commands" "$HOME/.config"
+# ccstatusline n'est plus deploye : son ancien lien gere doit disparaitre.
+ln -s "$TEST_ROOT/harnesses/claude/config/ccstatusline" "$HOME/.config/ccstatusline"
 ln -s "$TEST_ROOT/harnesses/claude/commands/commit.md" "$HOME/.claude/commands/commit.md"
 
 "$TEST_ROOT/install.sh" --only claude >/dev/null
 jq -e '
-  .model == "opus"
+  .model == "fable"
+  and .effortLevel == "medium"
   and .runtimeState.keep == true
   and .permissions.defaultMode == "auto"
-  and .env.CLAUDE_CODE_EXPERIMENTAL_CODE_MODE == "1"
+  and has("env") == false
+  and (.permissions.deny | index("Read(.env)") != null)
+  and ((.permissions.deny | index("Read(!.env.example)")) > (.permissions.deny | index("Read(.env.*)")))
+  and (.permissions.deny | index("Bash(git commit * --no-verify*)") != null)
+  and (.permissions.deny | index("Bash(git push * --force)") != null)
+  and (.permissions.deny | any(contains("| sh")) | not)
+  and ([.hooks.PreToolUse[] | select(.matcher | test("Write")) | .hooks[].onFailure] == ["block"])
+  and ([.hooks.PreToolUse[].matcher] | index("Skill") == null)
+  and ([.hooks[][]?.hooks[]?.command? // empty] | any(contains("rtk")) | not)
+  and ([.enabledPlugins | to_entries[] | select(.value == false) | .key | split("@")[0]] | sort
+       == ["claude-code-setup", "claude-md-management", "skill-creator"])
+  and (.hooks.Notification[0].matcher | test("permission_prompt"))
+  and .statusLine.command == "$HOME/.claude/scripts/statusline.sh"
+  and has("mcpServers") == false
   and has("includeCoAuthoredBy") == false
   and .attribution == {"commit": "", "pr": ""}
   and (.permissions.deny | index("Bash(prisma migrate reset *)") != null)
@@ -85,6 +80,10 @@ jq -e '
        | all(contains("/src/claude-config") | not))
 ' "$HOME/.claude/settings.json" >/dev/null
 [ ! -L "$HOME/.claude/settings.json" ]
+# Le relecteur en lecture seule est impose par le harness, pas demande en prose.
+assert_link_to "$HOME/.claude/agents/relecteur.md" \
+  "$TEST_ROOT/harnesses/claude/agents/relecteur.md"
+grep -q '^tools: Read, Grep, Glob$' "$HOME/.claude/agents/relecteur.md"
 assert_dir "$HOME/.claude/scripts"
 assert_link_to "$HOME/.claude/scripts/format-on-save.sh" \
   "$TEST_ROOT/shared/scripts/format-on-save.sh"
@@ -98,7 +97,8 @@ assert_link_to "$HOME/.claude/assets" "$TEST_ROOT/shared/assets"
 # Commands were merged into skills: stale managed links must be pruned.
 [ ! -e "$HOME/.claude/commands/commit.md" ]
 [ ! -L "$HOME/.claude/commands/commit.md" ]
-assert_link_to "$HOME/.config/ccstatusline" "$TEST_ROOT/harnesses/claude/config/ccstatusline"
+[ ! -e "$HOME/.config/ccstatusline" ]
+[ ! -L "$HOME/.config/ccstatusline" ]
 if rg -n 'src/(claude-config|codex-config|kimi-config)' \
   "$HOME/.claude/settings.json" "$HOME/.claude/scripts/notify-sound.sh"; then
   exit 1
@@ -164,56 +164,20 @@ assert_dir "$AGENT_CONFIG_WINDOWS_CODEX_DIR/assets"
 assert_dir "$AGENT_CONFIG_WINDOWS_CODEX_DIR/agents"
 [ ! -L "$AGENT_CONFIG_WINDOWS_CODEX_DIR/scripts" ]
 
-"$TEST_ROOT/install.sh" --only kimi >/dev/null
-grep -q '^default_model = "runtime/model"$' "$HOME/.kimi-code/config.toml"
-grep -q '^default_permission_mode = "auto"$' "$HOME/.kimi-code/config.toml"
-grep -q '^pattern = "Bash(prisma migrate reset \*)"$' "$HOME/.kimi-code/config.toml"
-grep -q '^merge_all_available_skills = false$' "$HOME/.kimi-code/config.toml"
-grep -q '^\[providers.runtime\]$' "$HOME/.kimi-code/config.toml"
-grep -q '^\[runtime.extra\]$' "$HOME/.kimi-code/config.toml"
-grep -q '^pattern = "Bash(rm -rf /)"$' "$HOME/.kimi-code/config.toml"
-# Assert the literal portable $HOME reference.
-# shellcheck disable=SC2016
-grep -q 'command = "$HOME/.kimi-code/scripts/format-on-save.sh"' "$HOME/.kimi-code/config.toml"
-if grep -q 'command = "/old/hook.sh"' "$HOME/.kimi-code/config.toml"; then
-  printf '%s\n' 'old Kimi hook survived managed-section replacement' >&2
-  exit 1
-fi
-uv run python -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' \
-  "$HOME/.kimi-code/config.toml"
-[ ! -L "$HOME/.kimi-code/config.toml" ]
-# Comments/formatting in app-owned TOML are not configuration drift.
-printf '\n# Runtime annotation in the last managed section.\n' >>"$HOME/.kimi-code/config.toml"
-kimi_hash="$(sha256sum <"$HOME/.kimi-code/config.toml")"
-"$TEST_ROOT/install.sh" --only kimi --check >/dev/null
-"$TEST_ROOT/install.sh" --only kimi >/dev/null
-[ "$kimi_hash" = "$(sha256sum <"$HOME/.kimi-code/config.toml")" ]
-assert_file "$HOME/.kimi-code/tui.toml"
-assert_file "$HOME/.kimi-code/mcp.json"
-assert_dir "$HOME/.kimi-code/scripts"
-assert_link_to "$HOME/.kimi-code/scripts/format-on-save.sh" \
-  "$TEST_ROOT/shared/scripts/format-on-save.sh"
-assert_link_to "$HOME/.kimi-code/scripts/protect-env.sh" \
-  "$TEST_ROOT/shared/scripts/protect-env.sh"
-assert_link_to "$HOME/.kimi-code/scripts/notify-sound.sh" \
-  "$TEST_ROOT/shared/scripts/notify-sound.sh"
-[ ! -e "$HOME/.kimi-code/scripts/reflect-nudge.sh" ]
-[ ! -L "$HOME/.kimi-code/scripts/reflect-nudge.sh" ]
-assert_link_to "$HOME/.kimi-code/assets" "$TEST_ROOT/shared/assets"
-if rg -n 'src/(claude-config|codex-config|kimi-config)' \
-  "$HOME/.kimi-code/config.toml" "$HOME/.kimi-code/scripts/notify-sound.sh"; then
-  exit 1
-fi
-
 "$TEST_ROOT/install.sh" --only opencode >/dev/null
 jq -S . "$TEST_ROOT/harnesses/opencode/opencode.json" >"$TEST_TMP/source-opencode.json"
 jq -S . "$HOME/.config/opencode/opencode.json" >"$TEST_TMP/runtime-opencode.json"
 cmp "$TEST_TMP/source-opencode.json" "$TEST_TMP/runtime-opencode.json"
-# Zero-prompt goal: the two ask-by-default permissions are allowed, deny rules kept.
-jq -e '.permission.external_directory == "allow" and .permission.doom_loop == "allow"
-  and .permission.bash["*"] == "allow" and .permission.bash["git reset --hard*"] == "deny"' \
+# Zero-prompt goal on 2.x: the base policy allows everything and only asks for
+# .env reads, which the rules settle; no rule may ask, deny rules are kept.
+jq -e '(.permissions | any(.effect == "ask") | not)
+  and any(.permissions[]; . == {action: "read", resource: "*.env", effect: "deny"})
+  and any(.permissions[]; . == {action: "shell", resource: "git reset --hard*", effect: "deny"})
+  and all(.permissions[]; .resource | test("--force\\*") | not)' \
   "$HOME/.config/opencode/opencode.json" >/dev/null
 [ "$(path_mode "$HOME/.config/opencode/opencode.json")" = 600 ]
+
+"$TEST_ROOT/install.sh" --only pi >/dev/null
 
 if ! "$TEST_ROOT/install.sh" --check >"$TEST_TMP/check.out" 2>&1; then
   printf '%s\n' 'expected a clean consolidated check:' >&2

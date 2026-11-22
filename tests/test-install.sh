@@ -75,12 +75,6 @@ assert_link_to \
   "$HOME/.claude/skills/wsl-windows-gui" \
   "$TEST_ROOT/shared/skills/wsl-windows-gui"
 
-"$TEST_ROOT/install.sh" --only kimi
-assert_link_to \
-  "$HOME/.agents/skills/commit" \
-  "$TEST_ROOT/shared/skills/commit"
-assert_not_exists "$HOME/.kimi-code/skills/commit"
-
 "$TEST_ROOT/install.sh" --only opencode
 assert_dir "$HOME/.config/opencode/skills"
 assert_link_to \

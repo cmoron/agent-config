@@ -2,43 +2,29 @@
   "$schema": "https://opencode.ai/config.json",
   "formatter": {},
   "model": "ollama/gemma4",
-  "provider": {
-    "ollama": {
-      "models": {
-        "gemma4": {
-          "_launch": true,
-          "name": "gemma4"
-        }
-      },
-      "name": "Ollama",
-      "npm": "@ai-sdk/openai-compatible",
-      "options": {
-        "baseURL": "http://127.0.0.1:11434/v1"
-      }
-    }
-  },
-  "permission": {
-    "external_directory": "allow",
-    "doom_loop": "allow",
-    "bash": {
-      "*": "allow",
-      "rm -rf /*": "deny",
-      "rm -rf ~*": "deny",
-      "rm -rf .": "deny",
-      "rm -fr *": "deny",
-      "git push --force*": "deny",
-      "git push -f *": "deny",
-      "git reset --hard*": "deny",
-      "git clean -f*": "deny",
-      "sudo *": "deny",
-      "dd *": "deny",
-      "shutdown *": "deny",
-      "reboot *": "deny",
-      "curl * | sh": "deny",
-      "wget * | sh": "deny",
-      "chmod 777 *": "deny",
-      "prisma migrate reset*": "deny",
-      "bunx prisma migrate reset*": "deny"
-    }
-  }
+  "permissions": [
+    { "action": "shell", "resource": "rm -rf /*", "effect": "deny" },
+    { "action": "shell", "resource": "rm -rf ~*", "effect": "deny" },
+    { "action": "shell", "resource": "rm -rf .", "effect": "deny" },
+    { "action": "shell", "resource": "rm -fr *", "effect": "deny" },
+    { "action": "shell", "resource": "git push --force *", "effect": "deny" },
+    { "action": "shell", "resource": "git push -f *", "effect": "deny" },
+    { "action": "shell", "resource": "git push * --force *", "effect": "deny" },
+    { "action": "shell", "resource": "git push * -f", "effect": "deny" },
+    { "action": "shell", "resource": "git push * -f *", "effect": "deny" },
+    { "action": "shell", "resource": "git reset --hard*", "effect": "deny" },
+    { "action": "shell", "resource": "git clean -f*", "effect": "deny" },
+    { "action": "shell", "resource": "sudo *", "effect": "deny" },
+    { "action": "shell", "resource": "dd *", "effect": "deny" },
+    { "action": "shell", "resource": "shutdown *", "effect": "deny" },
+    { "action": "shell", "resource": "reboot *", "effect": "deny" },
+    { "action": "shell", "resource": "chmod 777 *", "effect": "deny" },
+    { "action": "shell", "resource": "prisma migrate reset*", "effect": "deny" },
+    { "action": "shell", "resource": "bunx prisma migrate reset*", "effect": "deny" },
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "read", "resource": "*.env.*", "effect": "deny" },
+    { "action": "read", "resource": "*.env.example", "effect": "allow" },
+    { "action": "edit", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.*", "effect": "deny" }
+  ]
 }

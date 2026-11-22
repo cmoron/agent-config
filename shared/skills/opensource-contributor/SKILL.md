@@ -110,7 +110,7 @@ termes : `AI`, `LLM`, `generated`, `assisted`, `agent`, `Copilot`, `ChatGPT`, `C
     `Assisted-by: <nom du modèle> (<model-id>) via <harness>.`
     Nommer le modèle et le harness **réellement** utilisés pour ce commit —
     ex. `Assisted-by: Claude Fable 5 (claude-fable-5) via Claude Code.`,
-    `Assisted-by: GPT-5.6 Sol (gpt-5.6-sol) via Codex.`
+    `Assisted-by: GPT-6.2 Sol (gpt-6.2-sol) via Codex.`
   - une ligne équivalente dans le corps de la PR ou de l'issue.
     C'est la position défendue publiquement par Cyril (conf devant la gouvernance
     LOTUSim) : la transparence est le défaut, l'omission n'est pas neutre.

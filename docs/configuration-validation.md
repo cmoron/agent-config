@@ -21,8 +21,21 @@ git diff --check
 Les tests travaillent sous homes temporaires. Le test Codex selectionne les
 profils `terra`, `luna` et `sol-high` avec la vraie CLI et `mcp list --json` :
 ni appel de modele, ni connexion aux serveurs MCP. Si Codex est absent, le test
-annonce SKIP ; ce n'est pas une preuve de compatibilite. Le test OpenCode utilise
-deja `debug skill --pure` pour verifier la decouverte des skills.
+annonce SKIP ; ce n'est pas une preuve de compatibilite. Le test OpenCode
+interroge le serveur local (`opencode serve`, route `/api/skill`) pour verifier
+la decouverte des skills quand le binaire 2.x est present.
+
+`tests/test-pi.sh` couvre l'installation Pi sous home temporaire : fusion de
+`settings.json`, manifeste et reprise de `.pi-config-managed.json`, extensions
+copiees, hub, `--dry-run` et `--check`. Il lance `bun test
+./tests/pi-statusline.test.ts` si `bun` est present, sinon il annonce SKIP. Il
+ne demarre pas pi et ne prouve ni le chargement des paquets ni le garde-fou.
+
+`scripts/pi-smoke.sh` est la preuve sur l'installation reelle : deux appels a un
+modele (`PI_SMOKE_MODEL`, Haiku via `claude-bridge` par defaut), donc du quota.
+Il verifie que les outils attendus sont charges et que `cc-safety-net` bloque
+`git reset --hard`. Il reste manuel, hors de `tests/run-all.sh` : le lancer
+apres `./install.sh --only pi` ou une mise a jour des paquets.
 
 Apres installation autorisee avec `./install.sh`, executer `./install.sh --check`.
 Pour installer uniquement les changements de sources sans mettre a jour les
@@ -41,8 +54,8 @@ git status --short
 git submodule status
 codex --version
 claude --version
-kimi --version
 opencode --version
+pi --version
 ```
 
 Pour chaque run, noter dans son compte rendu :

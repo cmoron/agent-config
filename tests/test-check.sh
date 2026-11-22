@@ -17,12 +17,12 @@ trap cleanup_test_home EXIT
 
 ln -sfn /missing/api-design "$HOME/.agents/skills/api-design"
 printf '%s\n' '# unexpected global instructions' >"$HOME/.agents/AGENTS.md"
-printf '%s\n' '[' >"$HOME/.kimi-code/config.toml"
+printf '%s\n' '[' >"$AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml"
 printf '%s\n' '{ invalid json' >"$HOME/.config/opencode/opencode.json"
 printf '%s\n' '{"hook":"/home/cyril/src/codex-config/scripts/old.sh"}' \
   >"$AGENT_CONFIG_WINDOWS_CODEX_DIR/hooks.json"
 # A legacy path also leaks through a tilde, as in a carried-over header comment.
-printf '%s\n' '# gere dans ~/src/kimi-config' >>"$HOME/.kimi-code/AGENTS.md"
+printf '%s\n' '# gere dans ~/src/kimi-config' >>"$HOME/.codex/AGENTS.md"
 
 before_dry_run="$(snapshot_runtime)"
 "$TEST_ROOT/install.sh" --dry-run >"$TEST_TMP/dry-run.out"
@@ -33,7 +33,7 @@ after_dry_run="$(snapshot_runtime)"
 }
 grep -q '^WOULD ' "$TEST_TMP/dry-run.out"
 grep -Fq \
-  "WOULD BACKUP $HOME/.kimi-code/config.toml -> $HOME/.kimi-code/backups/" \
+  "WOULD BACKUP $HOME/.config/opencode/opencode.json -> $HOME/.config/opencode/backups/" \
   "$TEST_TMP/dry-run.out"
 
 before_check="$(snapshot_runtime)"
@@ -50,11 +50,11 @@ after_check="$(snapshot_runtime)"
 grep -Fq "DRIFT shared $HOME/.agents/skills/api-design link" "$TEST_TMP/check.out"
 [ "$(grep -Fc "DRIFT shared $HOME/.agents/skills/api-design link" "$TEST_TMP/check.out")" = 1 ]
 grep -Fq "DRIFT shared $HOME/.agents/AGENTS.md unexpected" "$TEST_TMP/check.out"
-grep -Fq "DRIFT kimi $HOME/.kimi-code/config.toml invalid-toml" "$TEST_TMP/check.out"
+grep -Fq "DRIFT windows $AGENT_CONFIG_WINDOWS_CODEX_DIR/config.toml invalid-toml" "$TEST_TMP/check.out"
 grep -Fq "DRIFT opencode $HOME/.config/opencode/opencode.json invalid-json" "$TEST_TMP/check.out"
 grep -Fq \
   "DRIFT windows $AGENT_CONFIG_WINDOWS_CODEX_DIR/hooks.json legacy-reference" \
   "$TEST_TMP/check.out"
-grep -Fq "DRIFT kimi $HOME/.kimi-code/AGENTS.md legacy-reference" "$TEST_TMP/check.out"
+grep -Fq "DRIFT codex $HOME/.codex/AGENTS.md legacy-reference" "$TEST_TMP/check.out"
 
 printf 'check tests: PASS\n'

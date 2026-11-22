@@ -48,6 +48,8 @@ new_test_home() {
   export HOME="$TEST_TMP/home"
   export AGENT_CONFIG_WINDOWS_CODEX_DIR="$TEST_TMP/windows/.codex"
   export AGENT_CONFIG_SKIP_PLUGINS=1
+  # pi's own override would otherwise point the installer at the real pi home.
+  unset PI_CODING_AGENT_DIR AGENT_CONFIG_PI_DIR
   mkdir -p "$HOME" "$AGENT_CONFIG_WINDOWS_CODEX_DIR"
 }
 

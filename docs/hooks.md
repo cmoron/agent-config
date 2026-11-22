@@ -6,7 +6,7 @@ des homes temporaires et des outils factices, sans son ni appel de modele.
 
 ## Sources et deploiement
 
-`shared/scripts` contient les actions communes et les entrees Claude/Kimi.
+`shared/scripts` contient les actions communes et les entrees Claude.
 `harnesses/codex/scripts` adapte les patches `apply_patch` au meme traitement
 de fichiers. Une entree native remplace l'entree commune du meme nom.
 Les chemins des commandes dans les configurations ne changent pas.
@@ -18,11 +18,10 @@ Windows recoit des fichiers reels combines dans son dossier `scripts` gere
 par le manifeste ; aucune dependance a un lien vers le depot.
 
 OpenCode conserve ses formateurs natifs et ne recoit pas ces hooks shell.
-Kimi reutilise les entrees communes ; aucun abonnement n'est necessaire aux tests.
 
 ## Formatage et protection
 
-Les entrees lisent un objet JSON sur stdin. Claude/Kimi fournissent
+Les entrees lisent un objet JSON sur stdin. Claude fournit
 `tool_input.file_path`, chaine non vide. Codex fournit `tool_input.command`,
 un patch encadre par `*** Begin Patch` et `*** End Patch`. L'adaptateur extrait
 les chemins Add/Update/Delete et les destinations `*** Move to:`. Il ne valide
@@ -33,7 +32,7 @@ Les chemins relatifs sont resolus depuis `cwd` si fourni, sinon depuis le
 repertoire courant. Les espaces sont acceptes ; les caracteres de controle
 dans les chemins sont refuses. Une entree invalide ou sans chemin exploitable
 produit un diagnostic sur stderr et le code 2. Codex renvoie `{}` sur stdout
-apres succes ; les entrees Claude/Kimi restent muettes sur stdout.
+apres succes ; les entrees Claude restent muettes sur stdout.
 
 | Entree                            | Action                                                            | Resultat                                                                      |
 | --------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -63,22 +62,6 @@ Les diagnostics du lecteur vont dans `notify-sound.log` a la racine du home
 du harness, hors des arbres geres par l'installateur. Le fichier est tronque
 a chaque lancement : c'est une aide au diagnostic du dernier son, pas un
 historique. Les lecteurs detaches ne gardent pas les pipes du hook ouverts.
-
-## Rappel de fin de session
-
-Ces adaptateurs restent natifs : les codes de retour ont des effets differents.
-Ils necessitent `python3` et Git. En leur absence, le rappel se degrade en
-no-op. Ils lisent `session_id` et `cwd`, puis regardent les changements Git. Un marqueur
-sous `${TMPDIR:-/tmp}` limite le rappel a une fois par session.
-
-- Claude prend aussi `stop_hook_active` en compte et emet du contexte JSON
-  avec le code 0.
-- Kimi renvoie le rappel sur stderr avec le code 2 : il provoque un tour
-  supplementaire, puis le marqueur empeche une nouvelle relance.
-- Codex n'a pas de hook Stop : son ancien rappel bloquait les tours termines.
-
-Ces rappels n'ecrivent ni skill ni memoire. Les tests couvrent le declenchement
-sur un depot temporaire modifie et l'absence de second rappel.
 
 ## Verification
 

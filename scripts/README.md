@@ -5,12 +5,13 @@ hooks executes par les harnesses vivent dans `shared/scripts/` et
 `harnesses/<name>/scripts/` ; leur documentation est dans
 [docs/hooks.md](../docs/hooks.md).
 
-| Script                      | Role                                                     | Qui l'appelle ?                               | Effets de bord                                                      |
-| --------------------------- | -------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------- |
-| `update_upstreams.py`       | Actualiser les skills externes, tester, puis installer   | `update.sh` ou toi via `uv run`               | Modifie les sous-modules et, par defaut, les configurations runtime |
-| `cutover-marker.sh`         | Activer ou lever le verrou des anciens installateurs     | Toi, lors d'une bascule ou d'un rollback      | Cree/remplace/supprime un fichier marqueur                          |
-| `legacy-installer-guard.sh` | Refuser un ancien installateur quand le verrou est actif | Les scripts des anciens depots, avec `source` | Aucun ; renvoie un refus                                            |
-| `merge-kimi-config.awk`     | Fusionner la partie geree de la configuration Kimi       | `install.sh`, en interne                      | Ecrit le resultat sur stdout uniquement                             |
+| Script                      | Role                                                        | Qui l'appelle ?                               | Effets de bord                                                               |
+| --------------------------- | ----------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
+| `update_upstreams.py`       | Actualiser les skills externes, tester, puis installer      | `update.sh` ou toi via `uv run`               | Modifie les sous-modules et, par defaut, les configurations runtime          |
+| `cutover-marker.sh`         | Activer ou lever le verrou des anciens installateurs        | Toi, lors d'une bascule ou d'un rollback      | Cree/remplace/supprime un fichier marqueur                                   |
+| `legacy-installer-guard.sh` | Refuser un ancien installateur quand le verrou est actif    | Les scripts des anciens depots, avec `source` | Aucun ; renvoie un refus                                                     |
+| `update-pi-packages.sh`     | Proposer ou appliquer les nouvelles epingles des paquets Pi | Toi                                           | Reecrit `harnesses/pi/settings.json` avec `--apply`                          |
+| `pi-smoke.sh`               | Verifier pi deploye : outils charges, garde-fou actif       | Toi, a la main                                | Deux appels a un modele (quota) ; aucun fichier hors d'un dossier temporaire |
 
 Les exemples suivants se lancent depuis la racine du depot.
 
@@ -56,6 +57,27 @@ en partie, ou installation partielle si celle-ci avait commence. Il n'y a pas de
 rollback automatique. Le code de sortie d'une commande en echec est propage ;
 une erreur d'usage renvoie 2, un sous-module sale renvoie 1.
 
+## Mettre a jour les paquets Pi
+
+Les paquets de `harnesses/pi/settings.json` sont epingles ;
+`update-pi-packages.sh` evite qu'ils vieillissent en silence. Il interroge le
+registre npm et les depots Git, sans rien installer.
+
+```bash
+scripts/update-pi-packages.sh           # liste les versions plus recentes
+scripts/update-pi-packages.sh --apply   # reecrit les epingles
+pi update --extensions && ./install.sh --only pi && bash scripts/pi-smoke.sh
+```
+
+Une version npm n'est proposee que 7 jours apres sa publication
+(`PI_CONFIG_MIN_AGE_DAYS`), jamais en retour arriere, et jamais en pre-release :
+les extensions tournent avec tous les droits. Les paquets Git suivent le commit
+de leur dernier tag, sans delai. La mise a jour de pi lui-meme est signalee, pas
+appliquee. Une erreur d'usage renvoie 2, un paquet sans candidat renvoie 1.
+
+`pi-smoke.sh` lance deux tours de `pi -p` dans un depot Git temporaire, chacun
+borne par `PI_SMOKE_TIMEOUT` (120 s). Il n'est pas dans `tests/run-all.sh`.
+
 ## Gerer le verrou des anciens depots
 
 Le marqueur par defaut est `~/.config/agent-config/active`. La variable
@@ -86,22 +108,3 @@ source "$HOME/src/agent-config/scripts/legacy-installer-guard.sh" || exit $?
 meme comme lien casse, suffit. Il renvoie 78 avec un message sur stderr si le
 verrou est actif, sinon 0 sans sortie. Execute directement, il quitte avec le
 meme code. Il ne protege que les anciens scripts qui le chargent.
-
-## Comprendre la fusion Kimi
-
-`install.sh` appelle `merge-kimi-config.awk` avec deux fichiers dans cet ordre :
-la source declarative `harnesses/kimi/config.toml`, puis la configuration runtime
-existante. Pour une premiere installation, il passe la source deux fois.
-
-Le helper remplace les cles `default_permission_mode` et
-`merge_all_available_skills`, ainsi que les tables `[[permission.rules]]` et
-`[[hooks]]`, par les valeurs du depot. Les autres lignes runtime, notamment les
-modeles et providers, sont conservees. Les cles manquantes sont inserees avant
-la premiere table ; les tables gerees sont regroupees en fin de fichier.
-
-C'est une fusion textuelle adaptee au format attendu, pas un parseur TOML :
-les cles reconnues commencent en colonne 1 et les en-tetes geres doivent
-correspondre exactement. Le script ne valide pas lui-meme la syntaxe TOML.
-Il produit le resultat sur stdout ; l'installateur gere le fichier temporaire,
-la sauvegarde et le remplacement. Ne jamais rediriger sa sortie vers l'un des
-fichiers d'entree, qui serait tronque avant d'etre lu.

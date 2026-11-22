@@ -27,9 +27,9 @@ EOF
 chmod +x "$fake_bin/git" "$fake_bin/uv" "$update_root/update.sh"
 
 PATH="$fake_bin:$PATH" AGENT_CONFIG_UPDATE_LOG="$log" \
-  "$update_root/update.sh" --only kimi --dry-run
+  "$update_root/update.sh" --only opencode --dry-run
 
 grep -Fxq "git -C $update_root pull --ff-only" "$log"
-grep -Fxq "uv run $update_root/scripts/update_upstreams.py --only kimi --dry-run" "$log"
+grep -Fxq "uv run $update_root/scripts/update_upstreams.py --only opencode --dry-run" "$log"
 
 printf 'update tests: PASS\n'

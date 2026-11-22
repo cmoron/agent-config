@@ -9,6 +9,10 @@
       "Bash(rm -rf --no-preserve-root /)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
+      "Bash(git push * --force)",
+      "Bash(git push * --force *)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
       "Bash(sudo rm -rf *)",
       "Bash(sudo dd *)",
       "Bash(sudo chmod 777 *)",
@@ -29,16 +33,24 @@
       "Bash(rm -rf /sbin*)",
       "Bash(rm -rf /usr*)",
       "Bash(rm -rf .)",
-      "Bash(curl * | sh)",
-      "Bash(wget * | sh)",
       "Bash(chmod 777 *)",
       "Bash(dd *)",
       "Bash(shutdown *)",
       "Bash(reboot *)",
       "Bash(git reset --hard *)",
-      "Bash(git clean -fd *)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit * --no-verify*)",
+      "Bash(git push --no-verify*)",
+      "Bash(git push * --no-verify*)",
+      "Bash(git clean -*f*)",
       "Bash(prisma migrate reset *)",
-      "Bash(bunx prisma migrate reset *)"
+      "Bash(bunx prisma migrate reset *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(!.env.sample)",
+      "Read(!.env.template)",
+      "Read(~/.ssh/id_*)"
     ],
     "defaultMode": "auto"
   },
@@ -52,7 +64,7 @@
       "Merging a pull request in a github.com/cmoron repository is allowed once its CI checks pass: Cyril is the sole maintainer and delegates delivery to the agent"
     ]
   },
-  "model": "opus",
+  "model": "fable",
   "hooks": {
     "PostToolUse": [
       {
@@ -92,25 +104,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/scripts/protect-env.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bunx -y ccstatusline@2.2.17 --hook"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v rtk >/dev/null && rtk hook claude || true"
+            "command": "$HOME/.claude/scripts/protect-env.sh",
+            "onFailure": "block"
           }
         ]
       }
@@ -127,6 +122,7 @@
     ],
     "Notification": [
       {
+        "matcher": "permission_prompt|idle_prompt|elicitation_dialog|elicitation_url_dialog|agent_needs_input|agent_completed",
         "hooks": [
           {
             "type": "command",
@@ -139,7 +135,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bunx -y ccstatusline@2.2.17",
+    "command": "$HOME/.claude/scripts/statusline.sh",
     "padding": 0
   },
   "enabledPlugins": {
@@ -147,21 +143,19 @@
     "pyright-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": false,
     "playwright@claude-plugins-official": true,
-    "claude-code-setup@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": false,
     "ponytail@ponytail": true,
     "clangd-lsp@claude-plugins-official": true,
     "codex@openai-codex": true,
     "swift-lsp@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true
-  },
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"
+    "lua-lsp@claude-plugins-official": true,
+    "goblin-alertes@goblin-hood": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
@@ -181,13 +175,13 @@
         "source": "github",
         "repo": "openai/codex-plugin-cc"
       }
+    },
+    "goblin-hood": {
+      "source": {
+        "source": "directory",
+        "path": "/home/cyril/src/goblin-hood/ops/claude"
+      }
     }
   },
-  "effortLevel": "xhigh",
-  "mcpServers": {
-    "linear": {
-      "type": "http",
-      "url": "https://mcp.linear.app/mcp"
-    }
-  }
+  "effortLevel": "medium"
 }

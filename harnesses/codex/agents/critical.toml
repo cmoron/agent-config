@@ -1,6 +1,6 @@
 name = "critical"
 description = "Implementation critique ou risquee, executee par Sol xhigh."
-model = "gpt-5.6-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "xhigh"
 developer_instructions = """
 Prends en charge uniquement le perimetre critique assigne. Tu n'es pas seul dans

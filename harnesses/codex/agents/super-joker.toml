@@ -1,6 +1,6 @@
 name = "super-joker"
 description = "Escalade Sol ultra reservee a un blocage concret de Sol xhigh."
-model = "gpt-5.6-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "ultra"
 developer_instructions = """
 Interviens seulement sur le blocage xhigh explicitement assigne. Ne travaille pas

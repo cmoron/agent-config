@@ -23,8 +23,11 @@ BACKUP_STAMP="${AGENT_CONFIG_BACKUP_STAMP:-$(date +%Y%m%d-%H%M%S-%N)-$$}"
 
 CLAUDE_DIR="${AGENT_CONFIG_CLAUDE_DIR:-$HOME/.claude}"
 CODEX_DIR="${AGENT_CONFIG_CODEX_DIR:-$HOME/.codex}"
-KIMI_DIR="${AGENT_CONFIG_KIMI_DIR:-$HOME/.kimi-code}"
 OPENCODE_DIR="${AGENT_CONFIG_OPENCODE_DIR:-$HOME/.config/opencode}"
+# PI_CODING_AGENT_DIR is pi's own override; honour it so both agree on the home.
+PI_DIR="${AGENT_CONFIG_PI_DIR:-${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}}"
+PI_MANIFEST=.agent-config-managed.json
+PI_LEGACY_MANIFEST=.pi-config-managed.json
 AGENTS_DIR="${AGENT_CONFIG_AGENTS_DIR:-$HOME/.agents}"
 STATE_DIR="${AGENT_CONFIG_STATE_DIR:-$HOME/.config/agent-config}"
 PROFILE_LOCAL="${AGENT_CONFIG_PROFILE_LOCAL:-$HOME/.profile.local}"
@@ -50,14 +53,7 @@ LEGACY_ROOTS=(
   "$HOME/src/skills"
 )
 ANTHROPIC_ALLOWLIST=(
-  claude-api
-  mcp-builder
   webapp-testing
-  doc-coauthoring
-  docx
-  pdf
-  pptx
-  xlsx
 )
 MATT_ROOT="$ROOT/upstreams/mattpocock-skills"
 MATT_MANIFEST="$MATT_ROOT/.claude-plugin/plugin.json"
@@ -67,7 +63,7 @@ WINDOWS_MANAGED_PATHS=()
 
 usage() {
   cat <<'EOF'
-Usage: ./install.sh [--only claude|codex|kimi|opencode] [--instructions-only] [--check|--dry-run]
+Usage: ./install.sh [--only claude|codex|opencode|pi] [--instructions-only] [--check|--dry-run]
 
   --only NAME  Limit deployment or checks to one harness.
   --instructions-only  Render instructions only; preserve configs, skills and plugins.
@@ -118,7 +114,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$ONLY" in
-  ""|claude|codex|kimi|opencode) ;;
+  ""|claude|codex|opencode|pi) ;;
   *)
     printf 'unknown harness: %s\n' "$ONLY" >&2
     exit 2
@@ -173,8 +169,8 @@ validate_safe_path() {
 validate_runtime_paths() {
   validate_safe_path AGENT_CONFIG_CLAUDE_DIR "$CLAUDE_DIR"
   validate_safe_path AGENT_CONFIG_CODEX_DIR "$CODEX_DIR"
-  validate_safe_path AGENT_CONFIG_KIMI_DIR "$KIMI_DIR"
   validate_safe_path AGENT_CONFIG_OPENCODE_DIR "$OPENCODE_DIR"
+  validate_safe_path AGENT_CONFIG_PI_DIR "$PI_DIR"
   validate_safe_path AGENT_CONFIG_AGENTS_DIR "$AGENTS_DIR"
   validate_safe_path AGENT_CONFIG_STATE_DIR "$STATE_DIR"
   validate_safe_path AGENT_CONFIG_PROFILE_LOCAL "$PROFILE_LOCAL"
@@ -190,7 +186,7 @@ selected_harnesses() {
   if [ -n "$ONLY" ]; then
     printf '%s\n' "$ONLY"
   else
-    printf '%s\n' claude codex kimi opencode
+    printf '%s\n' claude codex opencode pi
   fi
 }
 
@@ -198,8 +194,8 @@ runtime_root_for() {
   case "$1" in
     claude) printf '%s\n' "$CLAUDE_DIR" ;;
     codex) printf '%s\n' "$CODEX_DIR" ;;
-    kimi) printf '%s\n' "$KIMI_DIR" ;;
     opencode) printf '%s\n' "$OPENCODE_DIR" ;;
+    pi) printf '%s\n' "$PI_DIR" ;;
   esac
 }
 
@@ -207,8 +203,8 @@ instruction_target_for() {
   case "$1" in
     claude) printf '%s/CLAUDE.md\n' "$CLAUDE_DIR" ;;
     codex) printf '%s/AGENTS.md\n' "$CODEX_DIR" ;;
-    kimi) printf '%s/AGENTS.md\n' "$KIMI_DIR" ;;
     opencode) printf '%s/AGENTS.md\n' "$OPENCODE_DIR" ;;
+    pi) printf '%s/AGENTS.md\n' "$PI_DIR" ;;
   esac
 }
 
@@ -274,21 +270,6 @@ validate_harness_sources() {
         return 1
       }
       ;;
-    kimi)
-      for source in \
-        "$ROOT/harnesses/kimi/config.toml" \
-        "$ROOT/harnesses/kimi/tui.toml"; do
-        toml_is_valid "$source" || {
-          printf 'invalid source TOML: %s\n' "$source" >&2
-          return 1
-        }
-      done
-      source="$ROOT/harnesses/kimi/mcp.json"
-      json_is_valid "$source" || {
-        printf 'invalid source JSON: %s\n' "$source" >&2
-        return 1
-      }
-      ;;
     opencode)
       source="$ROOT/harnesses/opencode/opencode.json"
       json_is_valid "$source" || {
@@ -319,6 +300,13 @@ validate_harness_sources() {
           return 1
         }
       fi
+      ;;
+    pi)
+      source="$ROOT/harnesses/pi/settings.json"
+      json_is_valid "$source" || {
+        printf 'invalid source JSON: %s\n' "$source" >&2
+        return 1
+      }
       ;;
   esac
 }
@@ -475,7 +463,7 @@ deploy_copy_file() {
   esac
 }
 
-# Applications rewrite key order and formatting in app-owned JSON/TOML.
+# Applications rewrite key order and formatting in app-owned JSON.
 # Compare values so equivalent rewrites do not report drift forever.
 rendered_matches() {
   local rendered="$1"
@@ -483,15 +471,6 @@ rendered_matches() {
 
   case "$3" in
     json) jq -S . "$target" 2>/dev/null | cmp -s "$rendered" - ;;
-    toml)
-      "$PYTHON" - "$rendered" "$target" <<'PY'
-import sys
-import tomllib
-
-with open(sys.argv[1], "rb") as rendered, open(sys.argv[2], "rb") as target:
-    sys.exit(tomllib.load(rendered) != tomllib.load(target))
-PY
-      ;;
     *) cmp -s "$rendered" "$target" ;;
   esac
 }
@@ -581,6 +560,8 @@ render_claude_settings() {
       | .statusLine = $source.statusLine
       | .enabledPlugins = $source.enabledPlugins
       | .extraKnownMarketplaces = $source.extraKnownMarketplaces
+      | if $source | has("env") then .env = $source.env else del(.env) end
+      | del(.mcpServers)
     ' "$target" "$source" >"$output"
   else
     jq -S . "$source" >"$output"
@@ -650,16 +631,52 @@ render_codex_config() {
   rm -f "$runtime_state"
 }
 
-render_kimi_config() {
+# Source keys win; keys pi writes itself (deviceId, lastChangelogVersion...) stay.
+# A source array replaces the runtime one. A key managed by a previous install
+# and since removed from the source is dropped: the manifest lists the top-level
+# keys the last install managed, otherwise it would pass for a pi-owned key.
+render_pi_settings() {
   local output="$1"
-  local source="$ROOT/harnesses/kimi/config.toml"
-  local target="$KIMI_DIR/config.toml"
+  local source="$ROOT/harnesses/pi/settings.json"
+  local target="$PI_DIR/settings.json"
+  local previous='[]'
 
-  if [ -f "$target" ]; then
-    awk -f "$ROOT/scripts/merge-kimi-config.awk" "$source" "$target" >"$output"
-  else
-    awk -f "$ROOT/scripts/merge-kimi-config.awk" "$source" "$source" >"$output"
+  command -v jq >/dev/null 2>&1 || {
+    printf '%s\n' 'jq is required to merge pi settings' >&2
+    return 1
+  }
+  if [ -f "$PI_DIR/$PI_MANIFEST" ]; then
+    previous="$(cat "$PI_DIR/$PI_MANIFEST")"
+  elif [ -f "$PI_DIR/$PI_LEGACY_MANIFEST" ]; then
+    previous="$(cat "$PI_DIR/$PI_LEGACY_MANIFEST")"
   fi
+  if [ -f "$target" ]; then
+    jq -S --argjson previous "$previous" '
+      .[0] as $runtime
+      | .[1] as $source
+      | $runtime
+      | with_entries(select(.key as $k | ($previous | index($k) | not) or ($source | has($k))))
+      | . * $source
+    ' -s "$target" "$source" >"$output"
+  else
+    jq -S . "$source" >"$output"
+  fi
+}
+
+# The manifest written by the standalone pi-config installer is read once as the
+# previous manifest, then replaced by $PI_MANIFEST.
+retire_pi_legacy_manifest() {
+  local legacy="$PI_DIR/$PI_LEGACY_MANIFEST"
+
+  [ -e "$legacy" ] || [ -L "$legacy" ] || return 0
+  case "$MODE" in
+    check) report_drift pi "$legacy" legacy-manifest ;;
+    dry-run) printf 'WOULD REMOVE %s\n' "$legacy" ;;
+    apply)
+      rm -f "$legacy"
+      printf 'REMOVE %s\n' "$legacy"
+      ;;
+  esac
 }
 
 render_profile_local() {
@@ -748,7 +765,7 @@ deploy_harness_config() {
       deploy_link claude "$ROOT/shared/assets" "$CLAUDE_DIR/assets" "$CLAUDE_DIR"
       deploy_named_files claude "$ROOT/harnesses/claude/commands" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"
       deploy_named_files claude "$ROOT/harnesses/claude/agents" "$CLAUDE_DIR/agents" "$CLAUDE_DIR"
-      deploy_link claude "$ROOT/harnesses/claude/config/ccstatusline" "$HOME/.config/ccstatusline" "$HOME/.config"
+      prune_managed_link claude "$HOME/.config/ccstatusline"
       ;;
     codex)
       rendered="$(render_temp_for "$CODEX_DIR/config.toml")"
@@ -763,20 +780,28 @@ deploy_harness_config() {
       deploy_link codex "$ROOT/shared/assets" "$CODEX_DIR/assets" "$CODEX_DIR"
       deploy_link codex "$ROOT/harnesses/codex/agents" "$CODEX_DIR/agents" "$CODEX_DIR"
       ;;
-    kimi)
-      rendered="$(render_temp_for "$KIMI_DIR/config.toml")"
-      render_kimi_config "$rendered"
-      deploy_rendered_file kimi "$rendered" "$KIMI_DIR/config.toml" "$KIMI_DIR" 600 toml
-      deploy_copy_file kimi "$ROOT/harnesses/kimi/tui.toml" "$KIMI_DIR/tui.toml" "$KIMI_DIR" 644
-      deploy_copy_file kimi "$ROOT/harnesses/kimi/mcp.json" "$KIMI_DIR/mcp.json" "$KIMI_DIR" 600
-      deploy_scripts kimi "$KIMI_DIR"
-      deploy_link kimi "$ROOT/shared/assets" "$KIMI_DIR/assets" "$KIMI_DIR"
-      ;;
     opencode)
       deploy_copy_file opencode "$ROOT/harnesses/opencode/opencode.json" "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR" 600
       rendered="$(render_temp_for "$PROFILE_LOCAL")"
       render_profile_local "$rendered"
       deploy_rendered_file opencode "$rendered" "$PROFILE_LOCAL" "$STATE_DIR" 600
+      ;;
+    pi)
+      # settings.json first: its merge reads the previous manifest.
+      rendered="$(render_temp_for "$PI_DIR/settings.json")"
+      render_pi_settings "$rendered"
+      deploy_rendered_file pi "$rendered" "$PI_DIR/settings.json" "$PI_DIR" 600 json
+      rendered="$(render_temp_for "$PI_DIR/$PI_MANIFEST")"
+      jq -c 'keys' "$ROOT/harnesses/pi/settings.json" >"$rendered"
+      deploy_rendered_file pi "$rendered" "$PI_DIR/$PI_MANIFEST" "$PI_DIR" 644
+      retire_pi_legacy_manifest
+      # pi loads every extension in this directory: real copies, and other
+      # names belong to the user.
+      ensure_directory pi "$PI_DIR/extensions"
+      for source in "$ROOT/harnesses/pi/extensions/"*.ts; do
+        [ -f "$source" ] || continue
+        deploy_copy_file pi "$source" "$PI_DIR/extensions/${source##*/}" "$PI_DIR" 644
+      done
       ;;
   esac
 }
@@ -838,6 +863,23 @@ skill_name_desired() {
     [ "$candidate" = "$needle" ] && return 0
   done
   return 1
+}
+
+# $2 : ancien lien gere, devenu sans objet. Un lien tiers ou un vrai dossier reste.
+prune_managed_link() {
+  local harness="$1"
+  local link="$2"
+
+  [ -L "$link" ] || return 0
+  managed_link "$link" || return 0
+  case "$MODE" in
+    check) report_drift "$harness" "$link" stale ;;
+    dry-run) printf 'WOULD PRUNE %s\n' "$link" ;;
+    apply)
+      rm -f "$link"
+      printf 'PRUNE %s\n' "$link"
+      ;;
+  esac
 }
 
 prune_skill_links() {
@@ -1355,9 +1397,6 @@ deploy_harness_core() {
       deploy_windows_core
       bootstrap_codex_plugins
       ;;
-    kimi)
-      deploy_specific_skills kimi "$KIMI_DIR/skills" "$KIMI_DIR" no
-      ;;
     opencode)
       deploy_specific_skills opencode "$OPENCODE_DIR/skills" "$OPENCODE_DIR" yes
       ;;
@@ -1436,18 +1475,14 @@ check_harness_runtime() {
           "$WINDOWS_CODEX_DIR/skills"
       fi
       ;;
-    kimi)
-      check_runtime_file kimi "$KIMI_DIR/config.toml" toml
-      check_runtime_file kimi "$KIMI_DIR/tui.toml" toml
-      check_runtime_file kimi "$KIMI_DIR/mcp.json" json
-      check_executable_scripts kimi "$KIMI_DIR/scripts"
-      check_legacy_references kimi \
-        "$KIMI_DIR/config.toml" "$KIMI_DIR/AGENTS.md" "$KIMI_DIR/scripts"
-      ;;
     opencode)
       check_runtime_file opencode "$OPENCODE_DIR/opencode.json" json
       check_legacy_references opencode \
         "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR/AGENTS.md"
+      ;;
+    pi)
+      check_runtime_file pi "$PI_DIR/settings.json" json
+      check_legacy_references pi "$PI_DIR/settings.json" "$PI_DIR/AGENTS.md"
       ;;
   esac
 }
@@ -1471,9 +1506,10 @@ for harness in "${HARNESSES[@]}"; do
   validate_harness_sources "$harness"
 done
 
+# Codex and pi read the hub directly.
 for harness in "${HARNESSES[@]}"; do
   case "$harness" in
-    codex|kimi)
+    codex|pi)
       deploy_shared_hub
       break
       ;;

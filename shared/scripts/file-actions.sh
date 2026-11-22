@@ -14,7 +14,7 @@ read_hook_input() {
   }
 }
 
-# $1 : objet JSON deja valide par read_hook_input (protocole Claude/Kimi).
+# $1 : objet JSON deja valide par read_hook_input (protocole Claude).
 # Emet tool_input.file_path brut sur stdout : chaine non vide, sans caracteres
 # de controle. Ne resout pas le chemin et ne verifie pas son existence.
 # Retour : 0 si valide ; 2 avec diagnostic stderr sinon.

@@ -1,0 +1,101 @@
+{
+  "packages": [
+    "npm:pi-claude-bridge@0.13.0",
+    "npm:@upstash/context7-pi@0.1.3",
+    "npm:cc-safety-net@2.8.1",
+    "npm:@geohar/un-bien@0.25.17",
+    "npm:@astrojuanlu/pi-gruvbox@0.2.0",
+    "git:github.com/obra/superpowers@22f0b463e7a5e579904dd6211a520321035526f7",
+    "npm:pi-subagents@0.89.2",
+    "npm:pi-web-access@0.48.0",
+    "npm:pi-rewind-hook@1.8.9",
+    "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
+    "npm:@juicesharp/rpiv-todo@2.15.0",
+    "npm:@narumitw/pi-usage@0.69.4",
+    "npm:@ian-pascoe/pi-formatter@0.6.9"
+  ],
+  "defaultProvider": "claude-bridge",
+  "defaultModel": "claude-fable-5-2",
+  "defaultThinkingLevel": "medium",
+  "enabledModels": [
+    "openai/!(gpt-4*|gpt-5*|o[0-9]*|*chat-latest)",
+    "claude-bridge/!(*-4-*|*mythos*|claude-opus-5|claude-sonnet-5|claude-fable-5|claude-fable-5-1)"
+  ],
+  "npmCommand": [
+    "bun"
+  ],
+  "theme": "gruvbox-dark",
+  "rewind": {
+    "retention": {
+      "maxSnapshots": 2000,
+      "maxAgeDays": 30,
+      "pinLabeledEntries": true
+    }
+  },
+  "formatter": {
+    "formatters": {
+      "ruff-format": {
+        "command": "ruff",
+        "args": [
+          "format",
+          "--quiet",
+          "$FILE"
+        ],
+        "files": {
+          "extensions": [
+            ".py",
+            ".pyi"
+          ]
+        }
+      },
+      "ruff-fix": {
+        "command": "ruff",
+        "args": [
+          "check",
+          "--fix",
+          "--quiet",
+          "$FILE"
+        ],
+        "files": {
+          "extensions": [
+            ".py",
+            ".pyi"
+          ]
+        }
+      },
+      "rustfmt": {
+        "command": "rustfmt",
+        "args": [
+          "--edition",
+          "2021",
+          "$FILE"
+        ],
+        "files": {
+          "extensions": [
+            ".rs"
+          ]
+        }
+      },
+      "prettier": {
+        "command": "prettier",
+        "args": [
+          "--write",
+          "--log-level",
+          "warn",
+          "$FILE"
+        ],
+        "files": {
+          "extensions": [
+            ".html",
+            ".md",
+            ".yaml",
+            ".yml"
+          ]
+        }
+      }
+    }
+  },
+  "defaultTools": [
+    "+codemode"
+  ]
+}

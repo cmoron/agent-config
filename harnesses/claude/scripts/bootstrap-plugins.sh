@@ -17,11 +17,22 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
+# Marketplaces locales (source "directory") absentes de cette machine : ignorées, leurs plugins aussi.
+skipped="$(mktemp)"
+trap 'rm -f "$skipped"' EXIT
+
 # 1. Marketplaces déclarées dans settings.json (source unique, y compris l'officielle)
 echo "→ Marketplaces"
-jq -r '.extraKnownMarketplaces[].source.repo' "$CONFIG_DIR/settings.json" \
-| while read -r repo; do
-    claude plugin marketplace add "$repo"
+jq -r '.extraKnownMarketplaces | to_entries[]
+    | [.key, .value.source.source, (.value.source.repo // .value.source.path)] | @tsv' \
+    "$CONFIG_DIR/settings.json" \
+| while IFS="$(printf '\t')" read -r name kind where; do
+    if [ "$kind" = "directory" ] && [ ! -d "$where" ]; then
+        echo "  ⚠ $name : $where absent sur cette machine, marketplace et plugins ignorés"
+        echo "$name" >>"$skipped"
+        continue
+    fi
+    claude plugin marketplace add "$where"
 done
 echo ""
 
@@ -30,6 +41,9 @@ echo "→ Plugins"
 jq -r '.enabledPlugins | to_entries[] | select(.value == true) | .key' \
     "$CONFIG_DIR/settings.json" \
 | while read -r plugin; do
+    if grep -qxF "${plugin##*@}" "$skipped"; then
+        continue
+    fi
     echo "  → $plugin"
     claude plugin install "$plugin"
 done

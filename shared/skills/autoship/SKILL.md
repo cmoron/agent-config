@@ -77,6 +77,9 @@ inclut deja la demande. Ne pas precharger un orchestrateur dans un reviewer.
 Fournir : demande originale, criteres d'acceptation, conventions pertinentes,
 `base_commit`, `candidate_commit`, commandes/resultats de verification.
 Demander les constats et leurs preuves fichier/ligne, verdict et limites.
+Un reviewer qui compile ou teste utilise un repertoire de build distinct du
+candidat (ex. `CARGO_TARGET_DIR`), sinon l'outil de build peut executer ses
+artefacts a la place des sources.
 Le reviewer n'edite pas le candidat; les entrees manquantes reviennent au parent.
 Le rapport de l'auteur ne remplace pas les exigences originales.
 

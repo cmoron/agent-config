@@ -34,6 +34,7 @@ tests=(
   test-update.sh
   test-cutover-guard.sh
   test-opencode.sh
+  test-pi.sh
 )
 
 for test_file in "${tests[@]}"; do

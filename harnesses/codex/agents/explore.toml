@@ -1,6 +1,6 @@
 name = "explore"
 description = "Exploration read-only du code : localiser, tracer, resumer sans modifier."
-model = "gpt-5.6-luna"
+model = "gpt-6-luna"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """

@@ -63,7 +63,7 @@ grep -q 'missing frontmatter key: description' "$TMP/missing.out"
 uv run "$ROOT/tests/validate-skills.py" "$ROOT/shared/skills"
 
 local_skill_roots=()
-for harness in claude codex kimi opencode; do
+for harness in claude codex opencode pi; do
   if [ -d "$ROOT/harnesses/$harness/skills" ]; then
     local_skill_roots+=("$ROOT/harnesses/$harness/skills")
   fi
@@ -73,14 +73,7 @@ if [ "${#local_skill_roots[@]}" -gt 0 ]; then
 fi
 
 anthropic_skills=(
-  claude-api
-  mcp-builder
   webapp-testing
-  doc-coauthoring
-  docx
-  pdf
-  pptx
-  xlsx
 )
 anthropic_paths=()
 for skill in "${anthropic_skills[@]}"; do

@@ -12,7 +12,7 @@ natif est indisponible.
 ## 1. D'abord : `computer-use` natif
 
 Serveur MCP intégré à **Claude Code**, désactivé par défaut. Les autres harnais
-(Codex, Kimi, OpenCode) ne l'exposent pas : sous eux, aller directement au
+(Codex, OpenCode) ne l'exposent pas : sous eux, aller directement au
 chemin CLI de la section 2.
 
 ```

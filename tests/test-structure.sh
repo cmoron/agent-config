@@ -28,6 +28,7 @@ required_paths=(
   shared/skills/agent-config/SKILL.md
   shared/skills/autoship/SKILL.md
   shared/skills/commit/SKILL.md
+  shared/skills/github-tracker/SKILL.md
   shared/skills/linear/SKILL.md
   shared/skills/lotusim-developer/SKILL.md
   shared/skills/macos-control/SKILL.md
@@ -35,8 +36,8 @@ required_paths=(
   shared/skills/opensource-contributor/SKILL.md
   shared/skills/wsl-windows-gui/SKILL.md
   harnesses/claude/instructions.overlay.md
+  harnesses/claude/agents/relecteur.md
   harnesses/claude/settings.json
-  harnesses/claude/config/ccstatusline/settings.json
   harnesses/codex/instructions.overlay.md
   harnesses/codex/config.toml
   harnesses/codex/hooks.json
@@ -44,13 +45,17 @@ required_paths=(
   harnesses/codex/scripts/format-on-save.sh
   harnesses/codex/scripts/protect-env.sh
   harnesses/codex/scripts/patch-files.sh
-  harnesses/kimi/instructions.overlay.md
-  harnesses/kimi/config.toml
-  harnesses/kimi/mcp.json
-  harnesses/kimi/tui.toml
   harnesses/opencode/instructions.overlay.md
   harnesses/opencode/env.sh
   harnesses/opencode/opencode.json
+  harnesses/pi/instructions.overlay.md
+  harnesses/pi/settings.json
+  harnesses/pi/extensions/chevron-prompt.ts
+  harnesses/pi/extensions/claude-clean-home.ts
+  harnesses/pi/extensions/statusline.ts
+  scripts/update-pi-packages.sh
+  scripts/pi-smoke.sh
+  tests/pi-statusline.test.ts
   upstreams/mattpocock-skills/.claude-plugin/plugin.json
   upstreams/mattpocock-extra-skills.txt
 )
@@ -68,9 +73,6 @@ for path in \
   harnesses/claude/scripts/format-on-save.sh \
   harnesses/claude/scripts/protect-env.sh \
   harnesses/claude/scripts/notify-sound.sh \
-  harnesses/kimi/scripts/format-on-save.sh \
-  harnesses/kimi/scripts/protect-env.sh \
-  harnesses/kimi/scripts/notify-sound.sh \
   harnesses/codex/scripts/notify-sound.sh; do
   if [ -e "$ROOT/$path" ]; then
     printf 'shared hook still duplicated by harness: %s\n' "$path" >&2
@@ -79,7 +81,7 @@ for path in \
 done
 
 # Source unique : un skill vit dans shared/skills, jamais duplique par harness.
-for harness in claude codex kimi opencode; do
+for harness in claude codex opencode pi; do
   harness_skills="$ROOT/harnesses/$harness/skills"
   [ -d "$harness_skills" ] || continue
   if [ -n "$(find "$harness_skills" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
@@ -102,6 +104,14 @@ git config -f "$ROOT/.gitmodules" --get \
 git config -f "$ROOT/.gitmodules" --get \
   submodule.harnesses/claude/upstream/anthropic-skills.branch \
   | grep -qx main
+
+# Kimi Code est retire : aucun harness ne doit le ressusciter.
+for path in harnesses/kimi scripts/merge-kimi-config.awk; do
+  if [ -e "$ROOT/$path" ]; then
+    printf 'removed harness path must not exist: %s\n' "$path" >&2
+    exit 1
+  fi
+done
 
 if [ -e "$ROOT/global/AGENTS.md" ]; then
   printf 'legacy path must not exist: global/AGENTS.md\n' >&2

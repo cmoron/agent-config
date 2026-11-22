@@ -1,13 +1,13 @@
 ---
 name: agent-config
-description: Use when modifying Cyril's shared Claude Code, Codex, Kimi Code, or OpenCode configuration in ~/src/agent-config.
+description: Use when modifying Cyril's shared Claude Code, Codex, OpenCode, or Pi configuration in ~/src/agent-config.
 ---
 
 # Agent Config
 
 `~/src/agent-config` est l'unique source declarative. Ne pas maintenir
-directement `~/.claude`, `~/.codex`, `~/.kimi-code`, `~/.agents` ou
-`~/.config/opencode`.
+directement `~/.claude`, `~/.codex`, `~/.agents`, `~/.config/opencode` ou
+`~/.pi/agent`.
 
 ## Placement
 
@@ -63,23 +63,23 @@ explicitement. Sans ca `--check` derive a chaque execution : Claude reordonne
 
 ## Diffusion des skills
 
-| Harness  | Lit                                        | Consequence                                    |
-| -------- | ------------------------------------------ | ---------------------------------------------- |
-| Claude   | `~/.claude/skills` uniquement              | les skills partages y sont miroires par liens  |
-| Codex    | `~/.agents/skills` + `~/.codex/skills`     | le hub suffit; ne rien dupliquer               |
-| Kimi     | `~/.agents/skills` + `~/.kimi-code/skills` | `merge_all_available_skills = false`           |
-| OpenCode | `~/.config/opencode/skills`                | miroir natif; hub masque par le flag de compat |
+| Harness  | Lit                                    | Consequence                                   |
+| -------- | -------------------------------------- | --------------------------------------------- |
+| Claude   | `~/.claude/skills` uniquement          | les skills partages y sont miroires par liens |
+| Codex    | `~/.agents/skills` + `~/.codex/skills` | le hub suffit; ne rien dupliquer              |
+| OpenCode | `~/.config/opencode/skills`            | miroir natif; la 2.x lit aussi le hub         |
+| Pi       | `~/.agents/skills`                     | le hub, deploye avec `--only pi`              |
 
-Les huit skills Anthropic allowlistes restent un submodule Claude-only.
+Le skill Anthropic allowliste (`webapp-testing`) reste un submodule Claude-only.
 
 ## Par harness
 
-| Harness  | Instructions rendues           | Config                       | Particularite                                                |
-| -------- | ------------------------------ | ---------------------------- | ------------------------------------------------------------ |
-| Claude   | `~/.claude/CLAUDE.md`          | `settings.json` fusion JSON  | cles declaratives source-owned, cles runtime preservees      |
-| Codex    | `~/.codex/AGENTS.md`           | `config.toml` copie          | preserve `[hooks.state]`, `[projects]` et l'etat marketplace |
-| Kimi     | `~/.kimi-code/AGENTS.md`       | `config.toml` fusion TOML    | permissions/hooks source, modele/providers runtime           |
-| OpenCode | `~/.config/opencode/AGENTS.md` | `opencode.json` copie `0600` | bloc d'env gere dans `~/.profile.local`                      |
+| Harness  | Instructions rendues           | Config                             | Particularite                                                   |
+| -------- | ------------------------------ | ---------------------------------- | --------------------------------------------------------------- |
+| Claude   | `~/.claude/CLAUDE.md`          | `settings.json` fusion JSON        | cles declaratives source-owned, cles runtime preservees         |
+| Codex    | `~/.codex/AGENTS.md`           | `config.toml` copie                | preserve `[hooks.state]`, `[projects]` et l'etat marketplace    |
+| OpenCode | `~/.config/opencode/AGENTS.md` | `opencode.json` copie `0600`       | bloc d'env gere dans `~/.profile.local`                         |
+| Pi       | `~/.pi/agent/AGENTS.md`        | `settings.json` fusion JSON `0600` | manifeste de cles, extensions copiees, paquets installes par pi |
 
 Les hooks referencent toujours les scripts deployes sous le home du harness,
 jamais un chemin du depot. La cible Codex Windows recoit de vrais fichiers et son

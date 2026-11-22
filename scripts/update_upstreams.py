@@ -161,7 +161,7 @@ def render_summary(before: dict[str, str], after: dict[str, str]) -> None:
 )
 @click.option(
     "--only",
-    type=click.Choice(("claude", "codex", "kimi", "opencode")),
+    type=click.Choice(("claude", "codex", "opencode", "pi")),
     help="Limit install.sh to one harness.",
 )
 @click.option(

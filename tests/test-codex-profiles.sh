@@ -47,10 +47,11 @@ from pathlib import Path
 
 linux, windows = map(Path, sys.argv[1:])
 base = tomllib.loads((linux / "config.toml").read_text())
-assert base["model"] == "gpt-5.6-sol"
+assert base["model"] == "gpt-6.2-sol"
+assert "multi_agent" not in base["features"]
 assert base["model_reasoning_effort"] == "xhigh"
 assert "profiles" not in base and "profile" not in base
-for name, model in {"terra": "gpt-5.6-terra", "luna": "gpt-5.6-luna", "sol-high": "gpt-5.6-sol"}.items():
+for name, model in {"terra": "gpt-6.1-terra", "luna": "gpt-6-luna", "sol-high": "gpt-6.2-sol"}.items():
     source = linux / f"{name}.config.toml"
     target = windows / source.name
     assert source.is_file() and not source.is_symlink()

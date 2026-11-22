@@ -1,7 +1,7 @@
 # agent-config
 
 Ce depot est la source declarative unique des configurations Claude
-Code, Codex, Kimi Code et OpenCode de Cyril.
+Code, Codex, OpenCode et Pi de Cyril.
 
 ## Regles projet
 
@@ -28,6 +28,6 @@ Code, Codex, Kimi Code et OpenCode de Cyril.
 ```bash
 bash tests/test-structure.sh
 bash tests/test-python.sh
-bash -n install.sh update.sh tests/*.sh harnesses/*/scripts/*.sh
+bash -n install.sh update.sh tests/*.sh scripts/*.sh harnesses/*/scripts/*.sh
 git diff --check
 ```
