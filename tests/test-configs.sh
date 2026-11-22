@@ -173,7 +173,9 @@ cmp "$TEST_TMP/source-opencode.json" "$TEST_TMP/runtime-opencode.json"
 jq -e '(.permissions | any(.effect == "ask") | not)
   and any(.permissions[]; . == {action: "read", resource: "*.env", effect: "deny"})
   and any(.permissions[]; . == {action: "shell", resource: "git reset --hard*", effect: "deny"})
-  and all(.permissions[]; .resource | test("--force\\*") | not)' \
+  and all(.permissions[]; .resource | test("--force\\*") | not)
+  and any(.permissions[]; . == {action: "shell", resource: "git push --force", effect: "deny"})
+  and any(.permissions[]; . == {action: "shell", resource: "git push * --force", effect: "deny"})' \
   "$HOME/.config/opencode/opencode.json" >/dev/null
 [ "$(path_mode "$HOME/.config/opencode/opencode.json")" = 600 ]
 
