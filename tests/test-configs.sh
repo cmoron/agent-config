@@ -72,6 +72,7 @@ jq -e '
   .model == "opus"
   and .runtimeState.keep == true
   and .permissions.defaultMode == "auto"
+  and .env.CLAUDE_CODE_EXPERIMENTAL_CODE_MODE == "1"
   and has("includeCoAuthoredBy") == false
   and .attribution == {"commit": "", "pr": ""}
   and (.permissions.deny | index("Bash(prisma migrate reset *)") != null)

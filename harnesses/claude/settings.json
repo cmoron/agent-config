@@ -160,6 +160,9 @@
     "swift-lsp@claude-plugins-official": true,
     "lua-lsp@claude-plugins-official": true
   },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"
+  },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
       "source": {

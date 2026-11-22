@@ -79,7 +79,9 @@ CLI installee dans un home temporaire, sans appel de modele.
 regles `deny` restent appliquees avant lui. `autoMode` n'est lu que depuis
 `~/.claude/settings.json`; une entree ajoutee via `/permissions` ou
 `/auto-mode-setup` se reporte ici, sinon `--check` la signale. Les cles top-level
-inconnues sont preservees. La comparaison JSON est semantique : le reordonnancement
+inconnues sont preservees. `env` active le code mode
+(`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`) et est fusionne cle par cle : retirer une
+variable de la source ne la retire pas du home. La comparaison JSON est semantique : le reordonnancement
 par l'application ne provoque pas de derive.
 
 ### OpenCode
