@@ -96,7 +96,8 @@ assert_link_to "$HOME/.claude/scripts/notify-sound.sh" \
 [ ! -L "$HOME/.claude/scripts/reflect-nudge.sh" ]
 assert_link_to "$HOME/.claude/assets" "$TEST_ROOT/shared/assets"
 # Commands were merged into skills: stale managed links must be pruned.
-[ ! -e "$HOME/.claude/commands/commit.md" ] && [ ! -L "$HOME/.claude/commands/commit.md" ]
+[ ! -e "$HOME/.claude/commands/commit.md" ]
+[ ! -L "$HOME/.claude/commands/commit.md" ]
 assert_link_to "$HOME/.config/ccstatusline" "$TEST_ROOT/harnesses/claude/config/ccstatusline"
 if rg -n 'src/(claude-config|codex-config|kimi-config)' \
   "$HOME/.claude/settings.json" "$HOME/.claude/scripts/notify-sound.sh"; then

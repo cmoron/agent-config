@@ -37,7 +37,10 @@ mais doit rester vide. Y deposer un skill demande une justification ecrite dans
 
 1. Lire `docs/deployment-inventory.md` et les sources concernees.
 2. Modifier le minimum dans ce depot.
-3. Ecrire le test qui fixe le contrat, puis observer son echec.
+3. Ecrire le test qui fixe le contrat, puis observer son echec. Une assertion
+   par ligne : sous `set -e`, `[ A ] && [ B ]` ne fait pas echouer le script
+   quand `A` est faux, seul le dernier maillon de la liste compte. Un test qui
+   passe avant l'implementation est une assertion sans effet, pas un succes.
 4. Implementer et lancer `bash tests/run-all.sh`.
 5. Utiliser `./install.sh --dry-run`, puis `--check`.
 6. La bascule est faite : le marqueur `~/.config/agent-config/active` desactive
