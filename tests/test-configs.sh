@@ -64,7 +64,7 @@ jq -e '
   and ([.hooks.PreToolUse[].matcher] | index("Skill") == null)
   and ([.hooks[][]?.hooks[]?.command? // empty] | any(contains("rtk")) | not)
   and ([.enabledPlugins | to_entries[] | select(.value == false) | .key | split("@")[0]] | sort
-       == ["claude-code-setup", "claude-md-management", "skill-creator"])
+       == ["claude-code-setup", "claude-md-management", "skill-creator", "superpowers"])
   and (.hooks.Notification[0].matcher | test("permission_prompt"))
   and .statusLine.command == "$HOME/.claude/scripts/statusline.sh"
   and has("mcpServers") == false

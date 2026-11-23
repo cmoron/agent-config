@@ -22,7 +22,6 @@ tests=(
   test-install.sh
   test-private-skills.sh
   test-instructions.sh
-  test-review-candidate.sh
   test-configs.sh
   test-windows.sh
   test-safety.sh

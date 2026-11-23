@@ -2,7 +2,7 @@
 
 ### Modèles
 
-- Principal : le modèle de session.
+- Tous les rôles tournent sur le modèle de session.
 - Exécutant : sous-agent `general`. Mécanique : sous-agent `explore`.
 - Relecteur : `general` en contexte neuf.
 - Pas de hooks shell en 2.x.

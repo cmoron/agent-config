@@ -16,25 +16,34 @@ Plan → Build → Test → Review → Documente → Ship.
   avant de coder.
 - Build et Test bouclent jusqu'au vert. Trois tours sans progrès : s'arrêter et
   exposer le blocage.
-- Review : à partir de M, ou dès que le risque le justifie, par le Relecteur en
-  contexte neuf, contre la demande ou la spec. Lui donner un point fixe (SHA),
-  un fichier de diff (`git diff <SHA>`) et la liste des fichiers non suivis.
-  Corriger ce qui touche la justesse, laisser le style. XS et S : relire
-  soi-même le diff.
+- Review : contre la demande ou la spec, par un contexte neuf, celui du
+  flow ou le Relecteur. Lui donner un point fixe (SHA), un fichier de diff
+  (`git diff <SHA>`) et la liste des fichiers non suivis. Corriger ce qui touche
+  la justesse, laisser le style. XS, S et flow `default` : relire soi-même le
+  diff.
 - Documente : corriger la doc que le changement rend fausse, rien de plus.
 - Ship = commit puis push : après une boucle verte, sur demande.
 - Fini = preuve d'exécution : test vert, application qui démarre ou endpoint
   qui répond. Dire ce qui n'a pas été vérifié.
 
-## Échelle d'effort
+## Flow et effort
 
-Elle règle le poids de chaque étape de la boucle, pas leur ordre.
+Chaque projet déclare son flow dans ses instructions : `Flow : default`,
+`superpowers` ou `pocock`. Sans déclaration : `default`. Un seul flow par tâche.
+Le déroulé de chacun est dans `docs/flows.md` du dépôt `agent-config`.
 
-- **XS** : direct, plan en une phrase.
-- **S** : plan inline court, code, tests.
-- **M** : deux questions bloquantes au plus, puis un premier incrément testable.
-- **L+** : plan écrit, lots validés un par un, validation humaine aux
-  frontières.
+Estimer la taille du diff attendu après un premier regard au code et l'annoncer
+en une phrase. XS (quelques lignes, un fichier) et S (un comportement, quelques
+fichiers) : un seul jet, dans tous les flows. Au-delà, c'est-à-dire M
+(plusieurs fichiers ou un choix de conception) et L+ (plusieurs sessions) :
+
+- **default** : un seul jet aussi, sans cadrage ni sous-agent. Signaler une
+  tâche L+ en une phrase, puis avancer.
+- **superpowers** : le plugin Superpowers conduit le cadrage, le plan et
+  l'exécution.
+- **pocock** : cadrer avec `grilling` et `domain-modeling`. M : coder en TDD
+  dans la session, puis `code-review`. L+ : proposer `/to-spec`, `/to-tickets`,
+  puis `/implement-spec` ; après la PR, proposer `/retro`.
 
 ## Modèles et délégation
 
@@ -60,16 +69,10 @@ d'agents.
 
 ## Skills
 
-Les procédures vivent dans les skills. Un seul moteur de plan et un seul moteur
-de revue par tâche.
+Les procédures vivent dans les skills.
 
-- Nouveau projet : `mvp` pour le choix de stack.
-- L+ : Superpowers `writing-plans`, puis `executing-plans`.
-- Diagnostic, TDD : Pocock `diagnosing-bugs`, `tdd`.
-- Revue Standards/Spec, sur demande : Pocock `code-review`, à la place du
-  Relecteur.
-- UI : `frontend-design`. Livraison autonome : `autoship`, sur demande
-  explicite.
+- Nouveau projet : `/flow` pour déclarer le flow.
+- Bug qui résiste : `diagnosing-bugs`. UI : `frontend-design`.
 - Issue, label ou PR : skill `github-tracker` avant de lire ou publier. Simple
   analyse : ne rien publier.
 - Dépôt tiers : `opensource-contributor` et autorisation obligatoires, sinon
@@ -100,4 +103,4 @@ un diff ciblé vers un skill, une mémoire ou une instruction. Cyril relit avant
 écriture. Aucun commit automatique.
 
 Les instructions globales déployées sont générées : le diff vise
-`~/src/agent-config/instructions/common.md` ou l'overlay du harness.
+`instructions/common.md` ou l'overlay du harness, dans le dépôt `agent-config`.

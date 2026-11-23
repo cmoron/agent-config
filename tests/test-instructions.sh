@@ -30,6 +30,14 @@ for harness in claude codex opencode pi; do
   grep -q '^## Skills' "$target"
   # Les modeles sont etages par role ; chaque overlay nomme les siens.
   grep -q '^## Modèles et délégation' "$target"
+  # Chaque projet choisit son flow ; sans declaration, c'est default.
+  grep -q '^## Flow et effort' "$target"
+  grep -q 'Sans déclaration : `default`' "$target"
+  # Un chemin de home dans les instructions ne vaut pas sur toutes les cibles.
+  if grep -q '~/src/agent-config' "$target"; then
+    printf 'absolute repo path in %s instructions\n' "$harness" >&2
+    exit 1
+  fi
   grep -q 'skill `github-tracker`' "$target"
   grep -q 'point fixe' "$target"
   if grep -qi 'sous huit heures' "$target"; then
@@ -48,9 +56,6 @@ for skills_dir in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.config/o
   "$AGENT_CONFIG_WINDOWS_CODEX_DIR/skills"; do
   grep -q 'ready-for-agent' "$skills_dir/github-tracker/SKILL.md"
 done
-# La procedure candidat/preuves vit dans autoship, seul moment ou elle sert.
-grep -q 'candidate_commit' "$TEST_ROOT/shared/skills/autoship/SKILL.md"
-grep -q 'repertoire de build distinct' "$TEST_ROOT/shared/skills/autoship/SKILL.md"
 # Anthropic recommande moins de 200 lignes par fichier d'instructions.
 [ "$(($(wc -l <"${targets[claude]}")))" -le 200 ]
 

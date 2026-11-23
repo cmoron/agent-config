@@ -48,9 +48,9 @@ Pocock vit dans le skill `github-tracker`, deploye partout, et le tronc n'en
 garde que le pointeur.
 
 `--instructions-only` ne touche ni configs, ni skills, ni plugins, ni manifeste
-Windows. Les instructions composees definissent le workflow global ; les
-surcharges `docs/agents/` des projets sont lues par l'agent, sans ecriture de
-l'installateur dans ces projets.
+Windows. Les instructions composees definissent la facon de travailler ; le
+flow de chaque projet et les surcharges `docs/agents/` sont lus par l'agent,
+sans ecriture de l'installateur dans ces projets.
 
 ## Configurations natives
 
@@ -205,6 +205,11 @@ Pi n'a pas de bootstrap (voir sa section). Les bootstraps Claude et Codex resten
 si la CLI est disponible et `AGENT_CONFIG_SKIP_PLUGINS` n'est pas `1`. Ils
 peuvent installer/actualiser les plugins declares. Les tests utilisent des CLI
 factices ; un test de copie n'etablit pas l'activation d'un plugin.
+
+Superpowers est declare a `false` : il ne s'active que dans les projets dont
+le flow est `superpowers`, par leur `.claude/settings.json`, que le skill
+`/flow` ecrit. Sous Pi et Codex il reste global. Les trois flows et leur
+deroule sont decrits dans [flows.md](flows.md).
 
 Les marketplaces `github` s'enregistrent par leur depot. Une marketplace
 `directory` s'enregistre par son chemin, et seulement si ce dossier existe :

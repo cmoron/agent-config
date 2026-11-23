@@ -31,6 +31,7 @@
 - Les fichiers édités sont formatés automatiquement (ruff, rustfmt, prettier) :
   relire un fichier avant de le rééditer.
 - Skills : lire leur `SKILL.md` dans `~/.agents/skills` (`/skill:<nom>` côté
-  utilisateur). Superpowers est installé comme paquet.
+  utilisateur). Superpowers est installé comme paquet pour tous les projets :
+  hors flow `superpowers`, ignorer ses skills.
 - Pas de mémoire native durable : ce qui doit survivre va dans un skill ou une
   instruction source.

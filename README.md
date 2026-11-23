@@ -85,14 +85,18 @@ La [procedure de validation](docs/configuration-validation.md) precise les
 controles CLI, la portabilite et les comparaisons de comportement avec modele.
 Les tests ne deploient pas dans les homes reels.
 
-`instructions/common.md` et les overlays definissent aussi le workflow global
-Pocock/Superpowers/autoship. Les fichiers `docs/agents/*.md` d'un projet peuvent
-le completer ; l'installateur ne cree rien dans ces projets.
+`instructions/common.md` et les overlays definissent aussi la facon de
+travailler. Chaque projet choisit son flow (`default`, `superpowers` ou
+`pocock`) par une ligne `Flow :` dans ses instructions, posee par le skill
+`/flow` ; voir [docs/flows.md](docs/flows.md). L'installateur ne cree rien dans
+ces projets.
 
 ## Documentation operationnelle
 
 - [Inventaire de deploiement](docs/deployment-inventory.md) : sources, cibles,
   proprietaires et invariants.
+- [Flows de travail](docs/flows.md) : les trois flows (default, superpowers,
+  pocock), comment un projet choisit le sien et le deroule de chacun.
 - [Hooks](docs/hooks.md) : protocoles, erreurs, dependances et limites.
 - [Scripts de maintenance](scripts/README.md) : mise a jour et verrou legacy.
 - [Validation](docs/configuration-validation.md) : preuves et limites des tests.

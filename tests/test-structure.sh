@@ -26,7 +26,9 @@ required_paths=(
   shared/skills/stack-rust/SKILL.md
   shared/skills/stack-ts/SKILL.md
   shared/skills/agent-config/SKILL.md
-  shared/skills/autoship/SKILL.md
+  shared/skills/flow/SKILL.md
+  harnesses/codex/agents/relecteur.toml
+  docs/flows.md
   shared/skills/commit/SKILL.md
   shared/skills/github-tracker/SKILL.md
   shared/skills/linear/SKILL.md
@@ -132,8 +134,8 @@ if rg -n \
   exit 1
 fi
 
-# autoship livre et merge : seul l'utilisateur peut le declencher.
-grep -q '^disable-model-invocation: true$' "$ROOT/shared/skills/autoship/SKILL.md"
+# autoship est retire : les flows par projet couvrent la livraison.
+[ ! -e "$ROOT/shared/skills/autoship" ]
 [ ! -e "$ROOT/harnesses/claude/commands" ]
 
 printf 'structure tests: PASS\n'

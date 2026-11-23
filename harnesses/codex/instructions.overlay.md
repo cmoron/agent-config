@@ -6,11 +6,13 @@
   demande.
 - Exécutant : `terra` à effort `high`, agent `worker`.
 - Mécanique : `luna` à effort `high`, agent `explore`.
-- Relecteur : agent `critical`.
+- Relecteur : agent `relecteur`. Implémentation critique : agent `critical`.
 - Effort `max` : escalade ponctuelle pour un problème profond et indivisible.
   `super-joker` (Sol `ultra`) : uniquement après un blocage concret, pour un
   fan-out borné.
 - `fast_mode` reste désactivé.
+- Superpowers est installé pour tous les projets : hors flow `superpowers`,
+  ignorer ses skills.
 
 ### Délégation
 
