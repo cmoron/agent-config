@@ -560,6 +560,7 @@ render_claude_settings() {
       | .statusLine = $source.statusLine
       | .enabledPlugins = $source.enabledPlugins
       | .extraKnownMarketplaces = $source.extraKnownMarketplaces
+      | .pluginConfigs = ((.pluginConfigs // {}) * ($source.pluginConfigs // {}))
       | if $source | has("env") then .env = $source.env else del(.env) end
       | del(.mcpServers)
     ' "$target" "$source" >"$output"
@@ -761,6 +762,7 @@ deploy_harness_config() {
       rendered="$(render_temp_for "$CLAUDE_DIR/settings.json")"
       render_claude_settings "$rendered"
       deploy_rendered_file claude "$rendered" "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR" 600 json
+      deploy_copy_file claude "$ROOT/harnesses/claude/ponytail-band" "$CLAUDE_DIR/.ponytail-band" "$CLAUDE_DIR" 644
       deploy_scripts claude "$CLAUDE_DIR"
       deploy_link claude "$ROOT/shared/assets" "$CLAUDE_DIR/assets" "$CLAUDE_DIR"
       deploy_named_files claude "$ROOT/harnesses/claude/commands" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"

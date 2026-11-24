@@ -117,7 +117,8 @@
             "type": "command",
             "command": "$HOME/.claude/scripts/notify-sound.sh",
             "timeout": 10
-          }        ]
+          }
+        ]
       }
     ],
     "Notification": [
@@ -183,5 +184,12 @@
       }
     }
   },
-  "effortLevel": "medium"
+  "effortLevel": "medium",
+  "pluginConfigs": {
+    "ponytail@ponytail": {
+      "options": {
+        "ledger": false
+      }
+    }
+  }
 }

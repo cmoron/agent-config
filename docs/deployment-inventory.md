@@ -72,10 +72,11 @@ CLI installee dans un home temporaire, sans appel de modele.
 
 ### Claude Code
 
-| Source sous `harnesses/claude/` | Cible                     | Strategie                                    |
-| ------------------------------- | ------------------------- | -------------------------------------------- |
-| `settings.json`                 | `~/.claude/settings.json` | Fusion JSON, mode `0600`                     |
-| `agents/` si present            | `~/.claude/agents`        | Liens par fichier, artefacts tiers preserves |
+| Source sous `harnesses/claude/` | Cible                      | Strategie                                       |
+| ------------------------------- | -------------------------- | ----------------------------------------------- |
+| `settings.json`                 | `~/.claude/settings.json`  | Fusion JSON, mode `0600`                        |
+| `agents/` si present            | `~/.claude/agents`         | Liens par fichier, artefacts tiers preserves    |
+| `ponytail-band`                 | `~/.claude/.ponytail-band` | Copie ; `off` cache la bande du plugin ponytail |
 
 `permissions`, `autoMode`, `model`, `hooks`, `statusLine`, `enabledPlugins`,
 `extraKnownMarketplaces` et `env` sont entierement source-owned. Le mode par
@@ -83,7 +84,9 @@ defaut est `auto` : le classifieur refuse puis laisse l'agent continuer, sans
 prompt ; les regles `deny` restent appliquees avant lui. `autoMode` n'est lu que
 depuis `~/.claude/settings.json` ; une entree ajoutee via `/permissions` ou
 `/auto-mode-setup` se reporte ici, sinon `--check` la signale. Les cles
-top-level inconnues sont preservees.
+top-level inconnues sont preservees. `pluginConfigs` est fusionne : les options
+declarees ici s'imposent (`ledger: false` pour ponytail, qui n'ecrit alors plus
+son journal de couts), celles des autres plugins sont preservees.
 
 Le hook `protect-env` porte `onFailure: block` : s'il ne demarre pas ou expire,
 l'ecriture est refusee. La deny list bloque aussi la lecture des `.env` du

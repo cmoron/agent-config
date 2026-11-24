@@ -17,7 +17,8 @@ cat >"$HOME/.claude/settings.json" <<'EOF'
   "env": {"CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"},
   "mcpServers": {"linear": {"type": "http", "url": "https://mcp.linear.app/mcp"}},
   "autoMode": {"allow": ["runtime-only rule"]},
-  "enabledPlugins": {"runtime-only@example": true}
+  "enabledPlugins": {"runtime-only@example": true},
+  "pluginConfigs": {"runtime-only@example": {"options": {"keep": true}}}
 }
 EOF
 
@@ -76,10 +77,15 @@ jq -e '
   and .autoMode.allow[0] == "$defaults"
   and (.autoMode.allow | index("runtime-only rule") == null)
   and (.enabledPlugins["runtime-only@example"] == null)
+  and .pluginConfigs["ponytail@ponytail"].options.ledger == false
+  and .pluginConfigs["runtime-only@example"].options.keep == true
   and ([.hooks[][]?.hooks[]?.command? // empty]
        | all(contains("/src/claude-config") | not))
 ' "$HOME/.claude/settings.json" >/dev/null
 [ ! -L "$HOME/.claude/settings.json" ]
+# La bande ponytail au-dessus du prompt reste cachee.
+[ "$(cat "$HOME/.claude/.ponytail-band")" = off ]
+[ ! -L "$HOME/.claude/.ponytail-band" ]
 # Le relecteur en lecture seule est impose par le harness, pas demande en prose.
 assert_link_to "$HOME/.claude/agents/relecteur.md" \
   "$TEST_ROOT/harnesses/claude/agents/relecteur.md"
