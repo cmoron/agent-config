@@ -34,7 +34,7 @@ required_paths=(
   shared/skills/linear/SKILL.md
   shared/skills/lotusim-developer/SKILL.md
   shared/skills/macos-control/SKILL.md
-  shared/skills/openclaw/SKILL.md
+  shared/skills/nestor/SKILL.md
   shared/skills/opensource-contributor/SKILL.md
   shared/skills/wsl-windows-gui/SKILL.md
   harnesses/claude/instructions.overlay.md

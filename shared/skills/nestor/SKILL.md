@@ -1,9 +1,9 @@
 ---
-name: openclaw
-description: "Pour travailler sur Nestor/openclaw : VM NAS locale (openclaw-vm), configuration du service, workspace de l'agent, mémoire, heartbeat et cron, skills, déploiement via Ansible. Couvre aussi la cohabitation avec Hermes sur la même VM (~/.hermes), à ne pas confondre."
+name: nestor
+description: "Pour travailler sur Nestor, l'assistant personnel de Cyril qui tourne sur OpenClaw : VM NAS locale (openclaw-vm), configuration du service, workspace de l'agent, mémoire, heartbeat et cron, skills, dépôt de conf `nestor-config`. Couvre aussi la cohabitation avec Hermes sur la même VM (~/.hermes), à ne pas confondre."
 ---
 
-# Openclaw — Nestor
+# Nestor
 
 Nestor est un assistant IA personnel tournant sur une VM KVM locale (NAS), accessible via Telegram.
 Ce skill fournit le contexte nécessaire pour le maintenir et le faire évoluer.
@@ -51,9 +51,12 @@ Le mapping concret de ces concepts sur l'instance Nestor est détaillé ci-desso
 
 ## Accès
 
-- **VM** : `cyril@192.168.122.100` via ProxyJump `nas` — ou `ssh -J nas cyril@192.168.122.100`
-- **Ansible** : `~/src/openclaw/ansible/` (inventaire + playbooks de déploiement)
-- **Config sur VM** : `~/.openclaw/`
+- **VM** : `ssh nas ssh cyril@192.168.122.100 '<commande>'` (hors LAN : `home.moron.at`
+  à la place de `nas`). La forme `ssh -J nas cyril@192.168.122.100` échoue en
+  « Host key verification failed » tant que la clé de la VM n'a pas été acceptée
+  une fois en interactif depuis la machine cliente.
+- **Config sur VM** : `~/.openclaw/`, qui est le dépôt Git `cmoron/nestor-config`
+  (privé). C'est la seule source : il n'y a ni dépôt `~/src/openclaw` ni Ansible.
 - **Service** : `systemctl --user status openclaw-gateway`
 - **VNC** : `vnc-openclaw.home.moron.at` (pour Chrome manuel si besoin)
 
@@ -100,7 +103,7 @@ Autres services sur la VM, hors périmètre de ce skill : `openclaw-studio`,
     ├── USER.md            # Profil Cyril + contacts autorisés (Estelle)
     ├── MEMORY.md          # Mémoire persistante de Nestor
     ├── memory/            # Journaux quotidiens + long-term.md
-    └── skills/            # 17 skills maison (cf. § Skills workspace)
+    └── skills/            # Skills maison (cf. § Skills workspace)
 ```
 
 Les agents `main`, `ops`, `veille`, `cron`, `mypacer-ceo` et `model-lab` partagent le
@@ -142,8 +145,8 @@ modèle « lite » comme principal** — il confond outils natifs et skills.
 
 ## Skills workspace
 
-Les skills du registre intégré sont **tous désactivés** : tout passe par les 17 skills
-maison de `workspace/skills/`.
+Les skills du registre intégré sont **tous désactivés** : tout passe par les skills
+maison de `workspace/skills/`. Le tableau peut dater : `ls workspace/skills/` fait foi.
 
 | Domaine       | Skills                                                              | Notes                                           |
 | ------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
@@ -159,7 +162,8 @@ maison de `workspace/skills/`.
 
 - **Heartbeat** : toutes les **30 min**, 08:00–22:30 Europe/Paris, session isolée et
   contexte léger, sur son propre modèle. Checklist dans `workspace/HEARTBEAT.md`.
-- **Cron** (stocké dans `state/openclaw.sqlite`, table `cron_jobs`) :
+- **Cron** (stocké dans `state/openclaw.sqlite`, table `cron_jobs`, qui fait foi ;
+  le tableau peut dater) :
 
 | Job                   | Quand                | Agent    | Livraison          |
 | --------------------- | -------------------- | -------- | ------------------ |
@@ -182,10 +186,17 @@ Chrome tourne en service systemd permanent sur la VM (Ryzen 5 5600GT, 14 GB RAM,
 
 ## Workflow de modification
 
-1. Modifier les fichiers dans `~/src/openclaw/` (local)
-2. Déployer via Ansible : `ansible-playbook -i ansible/inventory.yml ansible/playbooks/03-openclaw.yml`
-3. Redémarrer si besoin : `ssh -J nas cyril@192.168.122.100 'systemctl --user restart openclaw-gateway'`
-4. Vérifier : status + tester via Telegram
+La conf vit sur la VM et s'y modifie. Nestor committe et pousse lui-même l'état
+courant de `~/.openclaw` vers `cmoron/nestor-config` (`nestor-backup.timer`,
+chaque nuit), y compris une édition ratée.
+
+1. Modifier les fichiers dans `~/.openclaw/` sur la VM.
+2. Redémarrer si besoin : `ssh nas ssh cyril@192.168.122.100 'systemctl --user restart openclaw-gateway'`
+3. Vérifier : status + tester via Telegram.
+
+Un clone local de `nestor-config` sert à lire et à chercher (`git pull` d'abord).
+Ne pas pousser depuis ce clone : la VM pousse son propre état et entrerait en
+conflit.
 
 Pour les fichiers workspace (SOUL.md, AGENTS.md, etc.), les changements sont lus au prochain message sans redémarrage.
 

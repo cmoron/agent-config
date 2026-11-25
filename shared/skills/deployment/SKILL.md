@@ -22,7 +22,7 @@ gh run view <id> --log-failed    # logs des jobs échoués
 ```
 
 - `docker compose` (v2, sans tiret) pour le packaging et l'exécution.
-- Ansible pour la configuration des serveurs (cf. skill `openclaw` / Nestor).
+- Ansible pour la configuration des serveurs.
 
 ## Priorités (dans l'ordre)
 
