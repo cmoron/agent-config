@@ -32,6 +32,7 @@ for harness in claude codex opencode pi; do
   grep -q '^## Modèles et délégation' "$target"
   # Chaque projet choisit son flow ; sans declaration, c'est default.
   grep -q '^## Flow et effort' "$target"
+  grep -q 'demander à Cyril de taper' "$target"
   grep -q 'Sans déclaration : `default`' "$target"
   # Un chemin de home dans les instructions ne vaut pas sur toutes les cibles.
   if grep -q '~/src/agent-config' "$target"; then

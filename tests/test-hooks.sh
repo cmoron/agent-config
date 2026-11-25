@@ -86,7 +86,8 @@ for harness in claude codex; do
   printf '%s' "$input" | RUFF_STATUS=0 PATH="$TEST_TMP/bin:$PATH" \
     "$runtime/scripts/format-on-save.sh" >/dev/null
   grep -Fqx "format --quiet $TEST_TMP/format workspace/example.py" "$HOOK_LOG"
-  grep -Fqx "check --fix --quiet $TEST_TMP/format workspace/example.py" "$HOOK_LOG"
+  # F401 non corrige : un import ecrit avant son usage ne doit pas disparaitre.
+  grep -Fqx "check --fix --unfixable F401 --quiet $TEST_TMP/format workspace/example.py" "$HOOK_LOG"
 done
 
 # An unavailable formatter is not an error, but it must leave a diagnostic so

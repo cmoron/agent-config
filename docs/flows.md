@@ -106,8 +106,8 @@ pour une tâche M l'agent construit lui-même en TDD au lieu d'attendre
 | 7. Relire                | Cyril                          | relecture humaine de la PR                                                                                                                 | des commentaires              |
 | 8. Améliorer             | Cyril : `/retro`               | relit les sessions et les commentaires, propose des checks et des standards                                                                | `CODING_STANDARDS.md`, checks |
 
-À chaque frontière, l'agent propose la commande suivante ; Cyril valide en la
-tapant. Les commandes des étapes 4b à 8 ne peuvent pas être lancées par l'agent.
+À chaque frontière, l'agent s'arrête et demande la commande suivante ; Cyril
+valide en la tapant. L'agent ne découpe ni ne publie de tickets lui-même. Les commandes des étapes 4b à 8 ne peuvent pas être lancées par l'agent.
 
 ### Règles de contexte
 
@@ -116,6 +116,9 @@ tapant. Les commandes des étapes 4b à 8 ne peuvent pas être lancées par l'ag
 - Garder les étapes 2 à 5 dans la même fenêtre de contexte : ni `/clear` ni
   `/compact` avant la fin de `/to-tickets`.
 - Compacter avant `/implement-spec`.
+- `/implement-spec` demande des merges et un sous-agent de fusion : ici,
+  l'agent principal intègre lui-même chaque ticket par rebase, pour garder
+  l'historique linéaire.
 - Lancer `/retro` dans la session qu'il examine, avant de la vider.
 - Variante de l'étape 6 : `/implement <ticket>`, un ticket à la fois, avec un
   `/clear` entre chaque. Plus lent, moins cher, plus facile à suivre.
@@ -132,6 +135,8 @@ tapant. Les commandes des étapes 4b à 8 ne peuvent pas être lancées par l'ag
 - **Perdu** : `/ask-matt` indique quel skill convient à la situation.
 - **Sous Pi**, les commandes s'écrivent `/skill:<nom>` : `/skill:flow`,
   `/skill:to-spec`.
+- **Sous OpenCode**, un skill se charge en le mentionnant dans le prompt :
+  `@flow pocock`, `@to-spec`. Il n'apparaît pas dans le menu des commandes `/`.
 
 ### Ce que ça coûte
 

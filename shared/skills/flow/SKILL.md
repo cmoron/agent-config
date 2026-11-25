@@ -41,7 +41,7 @@ Le déroulé de chaque flow est décrit dans `docs/flows.md` du dépôt
 Terminé quand la ligne existe une seule fois dans le projet et que l'état du
 plugin correspond au flow.
 
-Sous Pi, ce skill se lance par `/skill:flow`. L'activation par projet ne vaut
+Sous Pi, ce skill se lance par `/skill:flow` ; sous OpenCode, par `@flow`. L'activation par projet ne vaut
 que pour Claude Code. Sous Pi et Codex,
 Superpowers est installé globalement : seule la ligne `Flow :` y oriente
 l'agent.

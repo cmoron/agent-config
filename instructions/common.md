@@ -41,9 +41,12 @@ fichiers) : un seul jet, dans tous les flows. Au-delà, c'est-à-dire M
   tâche L+ en une phrase, puis avancer.
 - **superpowers** : le plugin Superpowers conduit le cadrage, le plan et
   l'exécution.
-- **pocock** : cadrer avec `grilling` et `domain-modeling`. M : coder en TDD
-  dans la session, puis `code-review`. L+ : proposer `/to-spec`, `/to-tickets`,
-  puis `/implement-spec` ; après la PR, proposer `/retro`.
+- **pocock** : cadrer avec `grilling` et `domain-modeling`, même si une spec
+  existe déjà. M : coder en TDD dans la session, puis `code-review`. L+ :
+  s'arrêter et demander à Cyril de taper `/to-spec`, puis `/to-tickets`, puis
+  `/implement-spec` ; ne pas découper ni publier de tickets soi-même. Intégrer
+  les tickets par rebase, sans merge commit ni sous-agent de fusion. Après la
+  PR, proposer `/retro`.
 
 ## Modèles et délégation
 

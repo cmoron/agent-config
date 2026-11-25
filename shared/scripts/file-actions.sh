@@ -61,7 +61,8 @@ protect_files() {
 
 # $@ : chemins deja valides, relatifs au cwd choisi ou absolus.
 # Modifie les fichiers existants en place selon leur extension ; pour Python,
-# ruff check --fix peut aussi corriger du code apres ruff format.
+# ruff check --fix peut aussi corriger du code apres ruff format, sauf les
+# imports inutilises (F401) : un import ecrit avant son usage serait supprime.
 # Fichier absent/extension inconnue : ignore. Outil absent : diagnostic stderr,
 # puis poursuite. Les outils sont cherches sur PATH, sans installation implicite.
 # Retour : 0 si traite/ignore ; premier code d'echec d'un outil sinon. Ses sorties
@@ -88,7 +89,7 @@ format_files() {
     fi
     "${formatter[@]}" "$file" >&2 || return $?
     if [ "$extension" = py ]; then
-      ruff check --fix --quiet "$file" >&2 || return $?
+      ruff check --fix --unfixable F401 --quiet "$file" >&2 || return $?
     fi
   done
 }
