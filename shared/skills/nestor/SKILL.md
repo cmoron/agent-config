@@ -130,7 +130,7 @@ apprentissages stables dans `USER.md`, `SOUL.md` et `memory/long-term.md`.
 - **Principal** : `openai/gpt-5.6-sol`, exécuté via le **runtime `codex`** (plugin openclaw)
 - **Fallbacks** : `openai/gpt-5.6-luna`, `openrouter/free`
 - **Heartbeat** : `openrouter/deepseek/deepseek-v4-flash` (modèle dédié, contexte léger)
-- **`model-lab`** : `openai/gpt-5.5`, avec un runtime `ollama/glm-5.2:cloud`
+- **`model-lab`** : `anthropic/claude-opus-5-5` (banc d'essai)
 - **Providers déclarés** : `ollama`, `nvidia`, `openrouter` (+ OpenAI via le runtime codex)
 
 ⚠️ Historique : Nestor a tourné sur Gemini. Si tu y reviens un jour, **ne pas prendre un
@@ -140,7 +140,8 @@ modèle « lite » comme principal** — il confond outils natifs et skills.
 
 - **Telegram** — activé, canal réel. Cyril ID `1595199898`, Estelle ID `1344871168`
   (paired, accès limité — pas de tools).
-- **WhatsApp** — `enabled: true` mais aucun `allowFrom` ni groupe : activé sans être utilisé.
+- **WhatsApp** — `enabled: true`, un numéro en `allowFrom`, mais **non lié** (pas de session
+  WhatsApp Web) : activé sans être utilisé.
 - **Discord** — désactivé.
 
 ## Skills workspace
@@ -148,41 +149,64 @@ modèle « lite » comme principal** — il confond outils natifs et skills.
 Les skills du registre intégré sont **tous désactivés** : tout passe par les skills
 maison de `workspace/skills/`. Le tableau peut dater : `ls workspace/skills/` fait foi.
 
-| Domaine       | Skills                                                              | Notes                                           |
-| ------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
-| Google        | `gog` (gmail, calendar), `gkeep`                                    | `gog` = API, pas de browser ; `gkeep` = browser |
-| Santé & sport | `strava`, `coros`, `withings`, `yazio`, `health-manager`            |                                                 |
-| Courses       | `carrefour-shopping`                                                | Browser CDP + Xvfb DISPLAY:1 requis             |
-| Musique       | `tidal-cli`, `kapellmeister-playlist`                               |                                                 |
-| Veille        | `tech-veille`, `reddit-veille`, `x-bookmarks-watcher`, `ddg-search` | `tech-veille` **publie dans Docmost**           |
-| Rapports      | `rapport-matinal`                                                   |                                                 |
-| Divers        | `brainstorm-team`, `command-center`                                 |                                                 |
+| Domaine       | Skills                                                              | Notes                                                    |
+| ------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
+| Google        | `gog` (gmail, calendar), `gkeep`                                    | `gog` = API, pas de browser ; `gkeep` = browser          |
+| Santé & sport | `strava`, `coros`, `withings`, `yazio`, `health-manager`            |                                                          |
+| Courses       | `carrefour-shopping`                                                | Browser CDP + Xvfb DISPLAY:1 requis                      |
+| Musique       | `tidal-cli`, `kapellmeister-playlist`                               |                                                          |
+| Veille        | `tech-veille`, `reddit-veille`, `x-bookmarks-watcher`, `ddg-search` | `tech-veille` **publie dans Docmost**                    |
+| Rapports      | `rapport-matinal`                                                   |                                                          |
+| Divers        | `brainstorm-team`, `command-center`, `goblin-hood`                  | `goblin-hood` = cycle Robinhood Chain (crons désactivés) |
 
 ## Automatismes
 
 - **Heartbeat** : toutes les **30 min**, 08:00–22:30 Europe/Paris, session isolée et
   contexte léger, sur son propre modèle. Checklist dans `workspace/HEARTBEAT.md`.
 - **Cron** (stocké dans `state/openclaw.sqlite`, table `cron_jobs`, qui fait foi ;
-  le tableau peut dater) :
+  le tableau peut dater ; `sqlite3` absent de la VM → lire via `openclaw cron list --all`) :
 
-| Job                   | Quand                | Agent    | Livraison          |
-| --------------------- | -------------------- | -------- | ------------------ |
-| Rapport Matinal       | 08:00 tous les jours | `cron`   | Telegram           |
-| Tech Veille           | 21:15 tous les jours | `veille` | Docmost + Telegram |
-| Consolidation Mémoire | 23:00 tous les jours | `cron`   | — (silencieux)     |
-| Bilan Hebdo Santé     | dimanche 18:00       | `cron`   | Telegram           |
-| Résumé Hebdo Estelle  | lundi 08:00          | `cron`   | Telegram           |
-| X Bookmarks Watcher   | 21:00                | `veille` | **désactivé**      |
-| Reddit Veille         | 21:30                | `veille` | **désactivé**      |
+| Job                        | Quand                | Agent         | Livraison                   |
+| -------------------------- | -------------------- | ------------- | --------------------------- |
+| Rapport Matinal            | 08:00 tous les jours | `cron`        | Telegram                    |
+| Tech Veille                | 21:15 tous les jours | `veille`      | Docmost + Telegram          |
+| Consolidation Mémoire      | 23:00 tous les jours | `cron`        | — (silencieux)              |
+| Bilan Hebdo Santé          | dimanche 18:00       | `cron`        | Telegram                    |
+| Résumé Hebdo Estelle       | lundi 08:00          | `cron`        | Telegram                    |
+| Daily Crypto Ecosystem     | 07:30 tous les jours | `finance:*`   | —                           |
+| Memory Dreaming            | 03:00 tous les jours | `memory-core` | — (silencieux)              |
+| Skill collection review ×6 | tous les 7 j         | —             | en **erreur** au 2026-10-04 |
+| X Bookmarks Watcher        | 21:00                | `veille`      | **désactivé**               |
+| Reddit Veille              | 21:30                | `veille`      | **désactivé**               |
 
 ## Chrome sur la VM NAS
 
-Chrome tourne en service systemd permanent sur la VM (Ryzen 5 5600GT, 14 GB RAM, 3 vCPUs) :
+Chrome tourne en service systemd permanent sur la VM (4 vCPU Ryzen 5 5600GT, 10 GB RAM ; NAS hôte 30 GB) :
 
 - Xvfb + Chrome démarrent au boot, redémarrés automatiquement par systemd si crash
 - Sessions Carrefour / Google Keep persistées dans le profil Chrome (`~/.openclaw/browser/chrome-profile`)
 - Debug port : `9222` — display : `:1`
 - En cas de problème de session : accès VNC via `vnc-openclaw.home.moron.at`
+
+## Mémoire RAM et fuite de la gateway
+
+Ressources VM : **10 GB RAM** et 4 GB de swap. Réduite de 16 le 2026-10-04 sur le NAS, via
+`virsh setmem openclaw 10G --live --config` puis `virsh setmaxmem openclaw 10G --config`.
+Après restart la gateway tient ~1 GB.
+
+- **Fuite heap connue (2026.9.x)** : le heap JS principal croît ~150 Mo/jour (openclaw#161147,
+  sans fix au 2026-10-04). Contenue par `openclaw-weekly-restart.timer` (user systemd,
+  dimanche 04:30 Europe/Paris → `openclaw gateway restart`). Retirer le timer quand le fix est livré.
+  Le `.service` hardcode le path Node, comme `openclaw-gateway.service` : bumper les deux ensemble.
+- **Suivi** : la gateway logue `[diagnostics/memory]` toutes les 5 min (rss, heap, `workerHeaps`
+  par worker) : `journalctl --user -u openclaw-gateway | grep diagnostics/memory`. Historique
+  long via atop : `atop -r /var/log/atop/atop_AAAAMMJJ -PPRM` (champ 12 = RSS en KB).
+- `diagnostics.heapProfile` est plafonné à 30 s : inutile pour une fuite lente.
+- Le cgroup du service compte aussi le page cache (`file` dans `memory.stat`) : regarder `anon`,
+  pas `MemoryCurrent`, avant de conclure à une fuite.
+- **Orphelins rabbit-agent** : le cron `~/.rabbit-agent/install.sh` lance une nouvelle version sans
+  tuer l'ancienne. Vérifier `ps -eo etime,args | grep rabbit-agent/versions` ; une vieille
+  version garde `claude -p`, `openclaw-acp`, `hermes acp` vivants (~1 GB vu le 2026-10-04).
 
 ## Workflow de modification
 
@@ -211,7 +235,8 @@ export NVM_DIR=~/.nvm; source ~/.nvm/nvm.sh; nvm use 24.18.0
 openclaw update --channel stable --dry-run        # prévisualiser
 ```
 
-- Vérifier la contrainte Node de la cible avant : `npm view openclaw@<v> engines` (2026.9.x : `>=24.16 <25`).
+- Vérifier la contrainte Node de la cible avant : `npm view openclaw@<v> engines` (2026.9.x : `>=24.16 <25 || >=26.1`). Version en place : **2026.9.8** (2026-10-04).
+- ⏱️ **Prévoir l'indisponibilité** : sur notre volume SQLite (~1 Go), l'update passe ~15 min en `validating` (gateway encore up), puis ~5 min de coupure au restart ; `doctor --fix` **arrête la gateway** (~12 min) le temps de migrer hors ligne. Lancer en tâche de fond (> timeout 10 min d'un appel shell).
 - Post-update : si le doctor plante en `ERR_MODULE_NOT_FOUND …/dist/doctor-*.js`, relancer `openclaw doctor` (l'ancien process importe le nouveau dist). Migrations « unfinished » → `openclaw doctor --fix --non-interactive` puis restart ; sauvegarder `openclaw.json` avant et relire le diff.
 - Le unit `openclaw-gateway.service` doit être en `600` : sinon l'update refuse de rafraîchir l'env service (`[unsafe-permissions]`).
 
