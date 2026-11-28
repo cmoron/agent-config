@@ -96,7 +96,8 @@ Les procédures vivent dans les skills.
 ## Stacks
 
 - Python : `uv` uniquement.
-- TypeScript/JavaScript : `bun` uniquement, runtime et paquets.
+- TypeScript/JavaScript : `bun` uniquement, runtime et paquets, dans nos
+  projets. Node reste installé pour les outils tiers (plugins, MCP via `npx`).
 - Rust : `cargo`, clippy pedantic.
 
 ## Auto-amélioration

@@ -22,6 +22,8 @@ Les credentials, sessions, caches et memoires natives restent hors Git.
 ## Installer et verifier
 
 Prerequis : Bash >= 4, Python >= 3.11 avec `tomllib`, Git et `jq`.
+Les plugins Claude actives (codex, ponytail, context7, playwright) exigent
+aussi Node.js LTS et `npx` sur le PATH.
 Sur macOS, l'installateur cherche Bash dans les emplacements Homebrew et un
 Python compatible sur le PATH ; `AGENT_CONFIG_PYTHON` force cet interpreteur.
 La mise a jour et les controles Python utilisent `uv` et `pyproject.toml`.
